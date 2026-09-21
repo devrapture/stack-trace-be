@@ -1,0 +1,185 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, staging]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: '1.3.14'
+  NODE_VERSION: '24'
+  CI: 'true'
+  HUSKY: '0'
+  DATABASE_URL: postgresql://${{ vars.POSTGRES_USER != '' && vars.POSTGRES_USER || 'stack_trace' }}:${{ secrets.POSTGRES_PASSWORD != '' && secrets.POSTGRES_PASSWORD || 'ci-only-secret' }}@127.0.0.1:5432/${{ vars.POSTGRES_DB != '' && vars.POSTGRES_DB || 'stack_trace' }}
+
+jobs:
+  check:
+    name: Format / Lint / Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bun run typecheck
+
+  unit:
+    name: Unit tests + coverage
+    needs: check
+    permissions:
+      contents: read
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run test:cov
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 7
+
+  build:
+    name: nest build
+    needs: unit
+    permissions:
+      contents: read
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: test -f dist/main.js
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  e2e:
+    name: E2E tests
+    needs: unit
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-bookworm
+        env:
+          POSTGRES_DB: ${{ vars.POSTGRES_DB != '' && vars.POSTGRES_DB || 'stack_trace' }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER != '' && vars.POSTGRES_USER || 'stack_trace' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD != '' && secrets.POSTGRES_PASSWORD || 'ci-only-secret' }}
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U ${{ vars.POSTGRES_USER != '' && vars.POSTGRES_USER || 'stack_trace' }} -d ${{ vars.POSTGRES_DB != '' && vars.POSTGRES_DB || 'stack_trace' }}"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Wait for PostgreSQL
+        run: |
+          attempts=30
+          until (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1; do
+            attempts=$((attempts - 1))
+            if [ "$attempts" -le 0 ]; then
+              echo "PostgreSQL did not become ready in time" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "PostgreSQL is ready"
+      - name: Apply database migrations
+        run: bun run db:migrate:deploy
+      - name: Run E2E tests
+        run: bun run test:e2e
+
+  doctor:
+    name: DI wiring check (doctor)
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run cli:doctor
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun audit --production
+
+  secrets:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
