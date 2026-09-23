@@ -1,0 +1,26 @@
+name: stack-trace
+
+services:
+  postgres:
+    image: postgres:18.6-bookworm
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_DB: stack_trace
+      POSTGRES_USER: stack_trace
+      POSTGRES_PASSWORD: local-development-only
+    ports:
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U stack_trace -d stack_trace
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - stack_trace_postgres_data:/var/lib/postgresql
+
+volumes:
+  stack_trace_postgres_data:
