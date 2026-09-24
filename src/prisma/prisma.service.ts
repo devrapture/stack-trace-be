@@ -23,7 +23,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     this.db = createDatabaseClient(databaseConfig.database_url);
   }
 
-  async ping(): Promise<void> {
+  async ping(signal?: AbortSignal): Promise<void> {
     const query = this.db.raw.sql`
               SELECT 1 AS "result"
             `
@@ -32,7 +32,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       })
       .build();
 
-    await this.db.runtime().query(query);
+    await this.db.runtime().query(query, { signal });
   }
   async onModuleInit() {
     try {

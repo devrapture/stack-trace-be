@@ -38,7 +38,7 @@ export class HealthService {
   private async checkDatabase(): Promise<boolean> {
     try {
       await this.withTimeout(
-        this.prisma.ping(),
+        (signal) => this.prisma.ping(signal),
         HealthService.DB_CHECK_TIMEOUT_MS,
       );
 
@@ -63,22 +63,25 @@ export class HealthService {
   }
 
   private async withTimeout<T>(
-    promise: Promise<T>,
+    operation: (signal: AbortSignal) => Promise<T>,
     timeoutMs: number,
   ): Promise<T> {
+    const abortController = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
-        reject(
-          new Error(`Database check timed out after
-          ${timeoutMs}ms`),
+        const error = new Error(
+          `Database check timed out after ${timeoutMs}ms`,
         );
+
+        abortController.abort(error);
+        reject(error);
       }, timeoutMs);
     });
 
     try {
-      return await Promise.race([promise, timeout]);
+      return await Promise.race([operation(abortController.signal), timeout]);
     } finally {
       if (timer) {
         clearTimeout(timer);
