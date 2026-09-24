@@ -40,7 +40,9 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter(logger));
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['/healthz', '/readyz'],
+  });
   await app.listen(config.port, '0.0.0.0');
   logger.log(
     `Stack trace listening on port ${config.port} ${config.environment}`,
