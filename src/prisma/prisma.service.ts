@@ -1,13 +1,27 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { db } from './db.js';
+import {
+  DATABASE_CONFIG,
+  type DatabaseConfig,
+} from '../config/database-config.js';
+import { createDatabaseClient, type DatabaseClient } from './db.js';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
-  constructor(private readonly logger: PinoLogger) {
+  readonly db: DatabaseClient;
+
+  constructor(
+    @Inject(DATABASE_CONFIG) databaseConfig: DatabaseConfig,
+    private readonly logger: PinoLogger,
+  ) {
     this.logger.setContext(PrismaService.name);
+    this.db = createDatabaseClient(databaseConfig.database_url);
   }
-  readonly db = db;
 
   async ping(): Promise<void> {
     const query = this.db.raw.sql`
