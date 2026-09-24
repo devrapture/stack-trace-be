@@ -8,6 +8,24 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     this.logger.setContext(PrismaService.name);
   }
   readonly db = db;
+
+  async ping(): Promise<boolean> {
+    try {
+      const query = this.db.raw.sql`
+              SELECT 1 AS "result"
+            `
+        .returnsRow({
+          result: 'pg/int4@1',
+        })
+        .build();
+
+      await this.db.runtime().query(query);
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
   async onModuleInit() {
     try {
       this.logger.info('Connecting to the database');
