@@ -18,6 +18,7 @@ export interface ValidatedEnvironment {
   readonly NODE_ENV: NodeEnvironment;
   readonly PORT: number;
   readonly LOG_LEVEL: LogLevel;
+  readonly DATABASE_URL: string;
 }
 
 export const environmentSchema = Joi.object<ValidatedEnvironment>({
@@ -40,4 +41,5 @@ export const environmentSchema = Joi.object<ValidatedEnvironment>({
       .valid(...LOG_LEVELS)
       .default('silent'),
   }),
+  DATABASE_URL: Joi.string().required(),
 });

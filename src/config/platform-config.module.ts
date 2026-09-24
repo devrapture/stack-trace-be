@@ -1,6 +1,7 @@
 import { FactoryProvider, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_CONFIG, createAppConfig } from './app-config.js';
+import { createDatabaseConfig, DATABASE_CONFIG } from './database-config.js';
 import {
   environmentSchema,
   ValidatedEnvironment,
@@ -18,6 +19,9 @@ const readValidatedEnvironment = (
   PORT: config.getOrThrow('PORT', {
     infer: true,
   }),
+  DATABASE_URL: config.getOrThrow('DATABASE_URL', {
+    infer: true,
+  }),
 });
 
 const appConfigProvider: FactoryProvider = {
@@ -25,6 +29,13 @@ const appConfigProvider: FactoryProvider = {
   inject: [ConfigService],
   useFactory: (configService: ConfigService<ValidatedEnvironment, true>) =>
     createAppConfig(readValidatedEnvironment(configService)),
+};
+
+const databaseConfigProvider: FactoryProvider = {
+  provide: DATABASE_CONFIG,
+  inject: [ConfigService],
+  useFactory: (configService: ConfigService<ValidatedEnvironment, true>) =>
+    createDatabaseConfig(readValidatedEnvironment(configService)),
 };
 
 @Module({
@@ -42,7 +53,7 @@ const appConfigProvider: FactoryProvider = {
       },
     }),
   ],
-  providers: [appConfigProvider],
-  exports: [APP_CONFIG],
+  providers: [appConfigProvider, databaseConfigProvider],
+  exports: [APP_CONFIG, DATABASE_CONFIG],
 })
 export class PlatformConfigModule {}
