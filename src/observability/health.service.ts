@@ -1,14 +1,24 @@
 import { Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
-  HealthChecks,
-  HealthResponse,
+  type HealthChecks,
+  type HealthResponse,
   HealthResponseDto,
 } from './dto/health-response.dto.js';
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  private static readonly DB_CHECK_TIMEOUT_MS = 2_000;
+
+  private databaseWasUp: boolean | undefined;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(HealthService.name);
+  }
 
   getLiveness(): HealthResponse {
     return this.buildResponse('ok', {
@@ -17,19 +27,65 @@ export class HealthService {
   }
 
   async getReadiness(): Promise<HealthResponse> {
+    const databaseUp = await this.checkDatabase();
+
+    return this.buildResponse(databaseUp ? 'ok' : 'unavailable', {
+      process: 'up',
+      database: databaseUp ? 'up' : 'down',
+    });
+  }
+
+  private async checkDatabase(): Promise<boolean> {
     try {
-      await this.prisma.ping();
-      return this.buildResponse('ok', {
-        process: 'up',
-        database: 'up',
-      });
-    } catch {
-      return this.buildResponse('unavailable', {
-        process: 'up',
-        database: 'down',
-      });
+      await this.withTimeout(
+        this.prisma.ping(),
+        HealthService.DB_CHECK_TIMEOUT_MS,
+      );
+
+      if (this.databaseWasUp === false) {
+        this.logger.info('Database readiness recovered');
+      }
+
+      this.databaseWasUp = true;
+
+      return true;
+    } catch (error) {
+      // Log the initial failure or a transition from up to down.
+      // Repeated failed health probes will not flood the logs.
+      if (this.databaseWasUp !== false) {
+        this.logger.warn({ err: error }, 'Database readiness check failed');
+      }
+
+      this.databaseWasUp = false;
+
+      return false;
     }
   }
+
+  private async withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+  ): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(
+          new Error(`Database check timed out after
+          ${timeoutMs}ms`),
+        );
+      }, timeoutMs);
+    });
+
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
   private buildResponse(
     status: 'ok' | 'unavailable',
     checks: HealthChecks,

@@ -9,22 +9,16 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
   readonly db = db;
 
-  async ping(): Promise<boolean> {
-    try {
-      const query = this.db.raw.sql`
+  async ping(): Promise<void> {
+    const query = this.db.raw.sql`
               SELECT 1 AS "result"
             `
-        .returnsRow({
-          result: 'pg/int4@1',
-        })
-        .build();
+      .returnsRow({
+        result: 'pg/int4@1',
+      })
+      .build();
 
-      await this.db.runtime().query(query);
-
-      return true;
-    } catch {
-      return false;
-    }
+    await this.db.runtime().query(query);
   }
   async onModuleInit() {
     try {
