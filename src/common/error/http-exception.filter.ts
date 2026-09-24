@@ -23,8 +23,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     this.logger.error(
       {
-        message: 'request_failed',
-        error: exception,
         requestId,
         method: request.method,
         url: request.originalUrl,
@@ -33,7 +31,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         errorMessage:
           exception instanceof Error ? exception.message : String(exception),
       },
-      GlobalExceptionFilter.name
+      'request_failed',
     );
 
     if (response.raw.headersSent || response.raw.writableEnded) return;
