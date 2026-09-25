@@ -1,17 +1,17 @@
 import { InvalidEmailAddressError, normalizeEmail } from './normalize-email.js';
 
 describe('normalizeEmail', () => {
-  it('trims the address and lowercases only the domain', () => {
+  it('trims the address and lowercases the complete lookup key', () => {
     expect(normalizeEmail('  First.Last+Tag@EXAMPLE.COM  ')).toEqual({
       displayEmail: 'First.Last+Tag@EXAMPLE.COM',
-      normalizedEmail: 'First.Last+Tag@example.com',
+      normalizedEmail: 'first.last+tag@example.com',
     });
   });
 
   it('normalizes Unicode to NFC before returning either address', () => {
     expect(normalizeEmail('Cafe\u0301@EXAMPLE.COM')).toEqual({
       displayEmail: 'Café@EXAMPLE.COM',
-      normalizedEmail: 'Café@example.com',
+      normalizedEmail: 'café@example.com',
     });
   });
 

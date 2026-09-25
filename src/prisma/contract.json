@@ -103,6 +103,13 @@
                   "plane": "domain"
                 }
               },
+              "providerUserId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -146,6 +153,9 @@
                 },
                 "provider": {
                   "column": "provider"
+                },
+                "providerUserId": {
+                  "column": "provider_user_id"
                 },
                 "updatedAt": {
                   "column": "updated_at"
@@ -444,6 +454,11 @@
                     "plane": "storage"
                   }
                 },
+                "provider_user_id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "updated_at": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "nativeType": "timestamptz",
@@ -495,6 +510,12 @@
                     "user_id",
                     "provider"
                   ]
+                },
+                {
+                  "columns": [
+                    "provider",
+                    "provider_user_id"
+                  ]
                 }
               ]
             },
@@ -523,7 +544,7 @@
                   "codecId": "pg/bool@1",
                   "default": {
                     "kind": "literal",
-                    "value": true
+                    "value": false
                   },
                   "nativeType": "bool",
                   "nullable": false
@@ -574,19 +595,12 @@
               "indexes": [
                 {
                   "columns": [
-                    "normalized_email"
-                  ],
-                  "name": "user_emails_normalized_email_idx_77d48382",
-                  "prefix": "user_emails_normalized_email_idx",
-                  "unique": false
-                },
-                {
-                  "columns": [
                     "user_id"
                   ],
-                  "name": "user_emails_user_id_idx_6c952402",
-                  "prefix": "user_emails_user_id_idx",
-                  "unique": false
+                  "name": "user_emails_user_idx_8d2b7603",
+                  "prefix": "user_emails_user_idx",
+                  "unique": true,
+                  "where": "is_primary = true"
                 }
               ],
               "primaryKey": {
@@ -597,7 +611,6 @@
               "uniques": [
                 {
                   "columns": [
-                    "user_id",
                     "normalized_email"
                   ]
                 }
@@ -737,7 +750,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e7a1ef84ea913ae99d47b25748ecd76f82e12b380f19472dbde8f0bc4beaecb2"
+    "storageHash": "47b80f6e0a40f84788e6dc8a786d8d9f272e346998dd7ff90bbf37dd10450335"
   },
   "execution": {
     "executionHash": "889b9500a087d58336bd8d3553ae5909b8b2e22bff36d537951e45fc5556d4e6",

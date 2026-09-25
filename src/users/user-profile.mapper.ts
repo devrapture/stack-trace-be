@@ -24,9 +24,7 @@ export type UserProfileSource = Pick<
 
 export function mapToUserProfile(user: UserProfileSource): UserProfile {
   const primaryEmail = user.email.find((email) => email.isPrimary);
-  if (!primaryEmail) {
-    throw new Error(`User ${user.id} has no primary email`);
-  }
+
   return Object.freeze({
     id: user.id,
     publicId: user.publicId,
@@ -34,11 +32,13 @@ export function mapToUserProfile(user: UserProfileSource): UserProfile {
     role: user.role,
     avatarUrl: user.avatarUrl,
     status: user.status,
-    primaryEmail: Object.freeze({
-      display: primaryEmail.email,
-      normalized: primaryEmail.normalizedEmail,
-      verified: primaryEmail.verifiedAt !== null,
-    }),
+    primaryEmail: primaryEmail
+      ? Object.freeze({
+          display: primaryEmail.email,
+          normalized: primaryEmail.normalizedEmail,
+          verified: primaryEmail.verifiedAt !== null,
+        })
+      : null,
     lastLoginAt: user.lastLoginAt
       ? new Date(user.lastLoginAt.epochMilliseconds)
       : null,

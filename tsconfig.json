@@ -20,5 +20,5 @@
     "types": ["vitest/globals", "node"],
     "resolveJsonModule": true
   },
-  "exclude": ["migrations"]
+  "exclude": ["migrations", "dist", "node_modules"]
 }

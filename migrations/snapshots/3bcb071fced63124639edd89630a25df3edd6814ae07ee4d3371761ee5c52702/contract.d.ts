@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'47b80f6e0a40f84788e6dc8a786d8d9f272e346998dd7ff90bbf37dd10450335'>;
+  StorageHashBase<'3bcb071fced63124639edd89630a25df3edd6814ae07ee4d3371761ee5c52702'>;
 export type ExecutionHash =
   ExecutionHashBase<'889b9500a087d58336bd8d3553ae5909b8b2e22bff36d537951e45fc5556d4e6'>;
 export type ProfileHash =
@@ -246,7 +246,6 @@ export type FieldOutputTypes = {
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly userId: CodecTypes['pg/uuid@1']['output'];
       readonly provider: 'PASSWORD' | 'GOOGLE' | 'GITHUB';
-      readonly providerUserId: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -279,7 +278,6 @@ export type FieldInputTypes = {
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly userId: CodecTypes['pg/uuid@1']['input'];
       readonly provider: 'PASSWORD' | 'GOOGLE' | 'GITHUB';
-      readonly providerUserId: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -312,7 +310,6 @@ export type StorageColumnTypes = {
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly provider: 'PASSWORD' | 'GOOGLE' | 'GITHUB';
-      readonly provider_user_id: CodecTypes['pg/text@1']['output'];
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly user_id: CodecTypes['pg/uuid@1']['output'];
     };
@@ -345,7 +342,6 @@ export type StorageColumnInputTypes = {
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly provider: 'PASSWORD' | 'GOOGLE' | 'GITHUB';
-      readonly provider_user_id: CodecTypes['pg/text@1']['input'];
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly user_id: CodecTypes['pg/uuid@1']['input'];
     };
@@ -403,7 +399,6 @@ export namespace Models {
     id: CodecTypes['pg/uuid@1']['output'];
     userId: CodecTypes['pg/uuid@1']['output'];
     provider: 'PASSWORD' | 'GOOGLE' | 'GITHUB';
-    providerUserId: CodecTypes['pg/text@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     user: public_User;
@@ -454,11 +449,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly provider_user_id: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
-                };
                 readonly created_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
@@ -472,10 +462,7 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [
-                { readonly columns: readonly ['user_id', 'provider'] },
-                { readonly columns: readonly ['provider', 'provider_user_id'] },
-              ];
+              uniques: readonly [{ readonly columns: readonly ['user_id', 'provider'] }];
               indexes: readonly [
                 {
                   readonly name: 'auth_identities_user_id_idx_6c952402';
@@ -690,10 +677,6 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly providerUserId: {
-                readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -727,7 +710,6 @@ type ContractBase = Omit<
                 readonly id: { readonly column: 'id' };
                 readonly userId: { readonly column: 'user_id' };
                 readonly provider: { readonly column: 'provider' };
-                readonly providerUserId: { readonly column: 'provider_user_id' };
                 readonly createdAt: { readonly column: 'created_at' };
                 readonly updatedAt: { readonly column: 'updated_at' };
               };

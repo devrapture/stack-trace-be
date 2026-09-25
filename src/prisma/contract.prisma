@@ -38,28 +38,31 @@ model UserEmail {
   userId          Uuid                 @map("user_id")
   email           String
   normalizedEmail String               @map("normalized_email")
-  isPrimary       Boolean              @map("is_primary") @default(true)
+  isPrimary       Boolean              @map("is_primary") @default(false)
   verifiedAt      Timestamptz(3)?      @map("verified_at")
   createdAt       temporal.createdAt() @map("created_at")
   updatedAt       temporal.updatedAt() @map("updated_at")
   user            User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
 
-  @@index([normalizedEmail])
-  @@unique([userId, normalizedEmail])
+  @@unique([normalizedEmail])
+  // At most one primary email per user
+  @@index([userId], unique: true, where: "is_primary = true",name: "user_emails_user_idx")
 
   @@map("user_emails")
 }
 
 model AuthIdentity {
-  id        Uuid                 @id @default(uuid())
-  userId    Uuid                 @map("user_id")
-  provider  AuthProvider
+  id             Uuid                 @id @default(uuid())
+  userId         Uuid                 @map("user_id")
+  provider       AuthProvider
+  providerUserId String               @map("provider_user_id")
 
-  user      User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
+  user           User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
 
-  createdAt temporal.createdAt() @map("created_at")
-  updatedAt temporal.updatedAt() @map("updated_at")
+  createdAt      temporal.createdAt() @map("created_at")
+  updatedAt      temporal.updatedAt() @map("updated_at")
 
   @@unique([userId, provider])
+  @@unique([provider, providerUserId])
   @@map("auth_identities")
 }

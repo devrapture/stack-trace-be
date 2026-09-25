@@ -35,10 +35,7 @@ export class PrismaUserRepository implements UsersRepository {
     const user = await this.prisma.db.orm.public.User.where({ publicId })
       .select(...USER_SELECT)
       .include('email', (emails) =>
-        emails
-          .where({ isPrimary: true })
-          .select(...EMAIL_SELECT)
-          .limit(1),
+        emails.where({ isPrimary: true }).select(...EMAIL_SELECT),
       )
       .first();
 
@@ -51,10 +48,7 @@ export class PrismaUserRepository implements UsersRepository {
     })
       .select(...USER_SELECT)
       .include('email', (emails) =>
-        emails
-          .where({ isPrimary: true })
-          .select(...EMAIL_SELECT)
-          .limit(1),
+        emails.where({ isPrimary: true }).select(...EMAIL_SELECT),
       )
       .first();
 
@@ -68,12 +62,11 @@ export class PrismaUserRepository implements UsersRepository {
       normalizedEmail,
     })
       .include('user', (users) =>
-        users.select(...USER_SELECT).include('email', (emails) =>
-          emails
-            .where({ isPrimary: true })
-            .select(...EMAIL_SELECT)
-            .limit(1),
-        ),
+        users
+          .select(...USER_SELECT)
+          .include('email', (emails) =>
+            emails.where({ isPrimary: true }).select(...EMAIL_SELECT),
+          ),
       )
       .first();
 

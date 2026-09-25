@@ -19,10 +19,8 @@ export const normalizeEmail = (input: string): NormalizedEmailAddress => {
   const display = input.trim().normalize('NFC');
   const at = display.lastIndexOf('@');
   if (at <= 0 || at === display.length - 1) rejectInvalidEmail();
-  const local = display.slice(0, at);
-  const domain = display.slice(at + 1).toLowerCase();
   return Object.freeze({
     displayEmail: display,
-    normalizedEmail: `${local}@${domain}`,
+    normalizedEmail: display.toLowerCase(),
   });
 };
