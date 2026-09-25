@@ -1,2 +1,65 @@
 // use prisma-8
+enum UserStatus {
+  PENDING // registered but email not verified
+  ACTIVE // verified and usable
+  SUSPENDED // disabled by admin
+  DELETED // soft-deleted for GDPR
+}
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+  GITHUB
+}
+
+model User {
+  id          Uuid                 @id @default(uuid())
+  publicId    Uuid                 @unique @default(uuid())
+  displayName String               @map("display_name")
+  avatarUrl   String?              @map("avatar_url")
+  role        UserRole             @default(USER)
+  status      UserStatus           @default(PENDING)
+  lastLoginAt Timestamptz(3)?      @map("last_login_at")
+  createdAt   temporal.createdAt() @map("created_at")
+  updatedAt   temporal.updatedAt() @map("updated_at")
+
+  email       UserEmail[]
+
+  @@map("users")
+}
+
+model UserEmail {
+  id              Uuid                 @id @default(uuid())
+  userId          Uuid                 @map("user_id")
+  email           String
+  normalizedEmail String               @map("normalized_email")
+  isPrimary       Boolean              @map("is_primary") @default(true)
+  verifiedAt      Timestamptz(3)?      @map("verified_at")
+  createdAt       temporal.createdAt() @map("created_at")
+  updatedAt       temporal.updatedAt() @map("updated_at")
+  user            User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
+
+  @@index([normalizedEmail])
+  @@unique([userId, normalizedEmail])
+
+  @@map("user_emails")
+}
+
+model AuthIdentity {
+  id        Uuid                 @id @default(uuid())
+  userId    Uuid                 @map("user_id")
+  provider  AuthProvider
+
+  user      User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
+
+  createdAt temporal.createdAt() @map("created_at")
+  updatedAt temporal.updatedAt() @map("updated_at")
+
+  @@unique([userId, provider])
+  @@map("auth_identities")
+}

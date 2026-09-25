@@ -1,0 +1,463 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.auth_identities",
+    "label": "Create table \"auth_identities\"",
+    "summary": "Creates table \"auth_identities\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"auth_identities\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"auth_identities\"",
+        "sql": "CREATE TABLE \"public\".\"auth_identities\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"provider\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  \"user_id\" uuid NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"auth_identities_provider_check_5218b05a\" CHECK (\"provider\" IN ('PASSWORD', 'GOOGLE', 'GITHUB'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"auth_identities\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.user_emails",
+    "label": "Create table \"user_emails\"",
+    "summary": "Creates table \"user_emails\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"user_emails\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"user_emails\"",
+        "sql": "CREATE TABLE \"public\".\"user_emails\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"is_primary\" bool DEFAULT true NOT NULL,\n  \"normalized_email\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  \"user_id\" uuid NOT NULL,\n  \"verified_at\" timestamptz(3),\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"user_emails\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.users",
+    "label": "Create table \"users\"",
+    "summary": "Creates table \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"users\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"users\"",
+        "sql": "CREATE TABLE \"public\".\"users\" (\n  \"avatar_url\" text,\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"display_name\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"last_login_at\" timestamptz(3),\n  \"publicId\" uuid NOT NULL,\n  \"role\" text DEFAULT 'USER' NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"users_role_check_1954e8c0\" CHECK (\"role\" IN ('USER', 'ADMIN')),\n  CONSTRAINT \"users_status_check_4f1afc93\" CHECK (\"status\" IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'DELETED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"users\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.auth_identities.auth_identities_user_id_provider_key",
+    "label": "Add unique constraint on \"auth_identities\" (user_id, provider)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "auth_identities_user_id_provider_key",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"auth_identities_user_id_provider_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_user_id_provider_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"auth_identities_user_id_provider_key\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" ADD CONSTRAINT \"auth_identities_user_id_provider_key\" UNIQUE (\"user_id\", \"provider\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"auth_identities_user_id_provider_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_user_id_provider_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.user_emails.user_emails_user_id_normalized_email_key",
+    "label": "Add unique constraint on \"user_emails\" (user_id, normalized_email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "user_emails_user_id_normalized_email_key",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"user_emails_user_id_normalized_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_user_id_normalized_email_key",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"user_emails_user_id_normalized_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"user_emails\" ADD CONSTRAINT \"user_emails_user_id_normalized_email_key\" UNIQUE (\"user_id\", \"normalized_email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"user_emails_user_id_normalized_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_user_id_normalized_email_key",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.users.users_publicId_key",
+    "label": "Add unique constraint on \"users\" (publicId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "users_publicId_key",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"users_publicId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_publicId_key",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"users_publicId_key\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ADD CONSTRAINT \"users_publicId_key\" UNIQUE (\"publicId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"users_publicId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_publicId_key",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.auth_identities.auth_identities_user_id_idx_6c952402",
+    "label": "Create index \"auth_identities_user_id_idx_6c952402\" on \"auth_identities\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "auth_identities_user_id_idx_6c952402",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"auth_identities_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"auth_identities_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"auth_identities_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"auth_identities_user_id_idx_6c952402\" ON \"public\".\"auth_identities\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"auth_identities_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"auth_identities_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.user_emails.user_emails_normalized_email_idx_77d48382",
+    "label": "Create index \"user_emails_normalized_email_idx_77d48382\" on \"user_emails\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "user_emails_normalized_email_idx_77d48382",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"user_emails_normalized_email_idx_77d48382\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_normalized_email_idx_77d48382\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"user_emails_normalized_email_idx_77d48382\"",
+        "sql": "CREATE INDEX \"user_emails_normalized_email_idx_77d48382\" ON \"public\".\"user_emails\" (\"normalized_email\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"user_emails_normalized_email_idx_77d48382\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_normalized_email_idx_77d48382\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.user_emails.user_emails_user_id_idx_6c952402",
+    "label": "Create index \"user_emails_user_id_idx_6c952402\" on \"user_emails\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "user_emails_user_id_idx_6c952402",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"user_emails_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"user_emails_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"user_emails_user_id_idx_6c952402\" ON \"public\".\"user_emails\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"user_emails_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.auth_identities.auth_identities_user_id_fkey",
+    "label": "Add foreign key \"auth_identities_user_id_fkey\" on \"auth_identities\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "auth_identities_user_id_fkey",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"auth_identities_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_user_id_fkey",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"auth_identities_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\"\nADD CONSTRAINT \"auth_identities_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"auth_identities_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_user_id_fkey",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.user_emails.user_emails_user_id_fkey",
+    "label": "Add foreign key \"user_emails_user_id_fkey\" on \"user_emails\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "user_emails_user_id_fkey",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"user_emails_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_user_id_fkey",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"user_emails_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"user_emails\"\nADD CONSTRAINT \"user_emails_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"user_emails_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_user_id_fkey",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ]
+  }
+]
