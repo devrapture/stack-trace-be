@@ -27,7 +27,8 @@ export class PrismaPasswordCredentialsRepository implements PasswordCredentialsR
     } catch (error: unknown) {
       if (
         isPostgresError(error) &&
-        error.sqlState === POSTGRES_UNIQUE_VIOLATION
+        ('sqlState' in error ? error.sqlState : error.cause.sqlState) ===
+          POSTGRES_UNIQUE_VIOLATION
       ) {
         throw new PasswordIdentityAlreadyExistsError();
       }
