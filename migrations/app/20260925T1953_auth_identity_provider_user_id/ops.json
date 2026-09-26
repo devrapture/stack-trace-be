@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.auth_identities.provider_user_id",
+    "label": "Add column \"provider_user_id\" to \"auth_identities\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "provider_user_id",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"provider_user_id\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "auth_identities",
+          "provider_user_id"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"provider_user_id\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" ADD COLUMN \"provider_user_id\" text NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"provider_user_id\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "auth_identities",
+          "provider_user_id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.auth_identities.auth_identities_provider_provider_user_id_key",
+    "label": "Add unique constraint on \"auth_identities\" (provider, provider_user_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "auth_identities_provider_provider_user_id_key",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"auth_identities_provider_provider_user_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_provider_provider_user_id_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"auth_identities_provider_provider_user_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" ADD CONSTRAINT \"auth_identities_provider_provider_user_id_key\" UNIQUE (\"provider\", \"provider_user_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"auth_identities_provider_provider_user_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_provider_provider_user_id_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ]
+  }
+]

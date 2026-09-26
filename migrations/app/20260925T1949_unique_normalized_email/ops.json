@@ -1,0 +1,245 @@
+[
+  {
+    "id": "dropIndex.user_emails.user_emails_normalized_email_idx_77d48382",
+    "label": "Drop index \"user_emails_normalized_email_idx_77d48382\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "user_emails_normalized_email_idx_77d48382",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"user_emails_normalized_email_idx_77d48382\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_normalized_email_idx_77d48382\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop index \"user_emails_normalized_email_idx_77d48382\"",
+        "sql": "DROP INDEX \"public\".\"user_emails_normalized_email_idx_77d48382\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"user_emails_normalized_email_idx_77d48382\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_normalized_email_idx_77d48382\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropIndex.user_emails.user_emails_user_id_idx_6c952402",
+    "label": "Drop index \"user_emails_user_id_idx_6c952402\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "user_emails_user_id_idx_6c952402",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"user_emails_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop index \"user_emails_user_id_idx_6c952402\"",
+        "sql": "DROP INDEX \"public\".\"user_emails_user_id_idx_6c952402\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"user_emails_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.user_emails.user_emails_user_id_normalized_email_key",
+    "label": "Drop constraint \"user_emails_user_id_normalized_email_key\" on \"user_emails\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "user_emails_user_id_normalized_email_key",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"user_emails_user_id_normalized_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_user_id_normalized_email_key",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"user_emails_user_id_normalized_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"user_emails\" DROP CONSTRAINT \"user_emails_user_id_normalized_email_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"user_emails_user_id_normalized_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_user_id_normalized_email_key",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "setDefault.user_emails.is_primary",
+    "label": "Set default on \"user_emails\".\"is_primary\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "is_primary",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"is_primary\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user_emails",
+          "is_primary"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "set default on \"is_primary\"",
+        "sql": "ALTER TABLE \"public\".\"user_emails\" ALTER COLUMN \"is_primary\" SET DEFAULT false"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"is_primary\" has a default",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NOT NULL)) AS \"result\"",
+        "params": [
+          "public",
+          "user_emails",
+          "is_primary"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.user_emails.user_emails_normalized_email_key",
+    "label": "Add unique constraint on \"user_emails\" (normalized_email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "user_emails_normalized_email_key",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"user_emails_normalized_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_normalized_email_key",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"user_emails_normalized_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"user_emails\" ADD CONSTRAINT \"user_emails_normalized_email_key\" UNIQUE (\"normalized_email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"user_emails_normalized_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_emails_normalized_email_key",
+          "public",
+          "\"public\".\"user_emails\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.user_emails.user_emails_user_idx_8d2b7603",
+    "label": "Create index \"user_emails_user_idx_8d2b7603\" on \"user_emails\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "user_emails_user_idx_8d2b7603",
+        "table": "user_emails"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"user_emails_user_idx_8d2b7603\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_user_idx_8d2b7603\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"user_emails_user_idx_8d2b7603\"",
+        "sql": "CREATE UNIQUE INDEX \"user_emails_user_idx_8d2b7603\" ON \"public\".\"user_emails\" (\"user_id\") WHERE (is_primary = true)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"user_emails_user_idx_8d2b7603\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user_emails_user_idx_8d2b7603\""
+        ]
+      }
+    ]
+  }
+]
