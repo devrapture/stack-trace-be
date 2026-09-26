@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { PASSWORD_CREDENTIALS_REPOSITORY } from './password/password-credentials.repository';
-import { PasswordHasher } from './password/password.hasher';
-import { PrismaPasswordCredentialsRepository } from './password/prisma-password-credentials.repository';
+import { PASSWORD_CREDENTIALS_REPOSITORY } from './password/password-credentials.repository.js';
+import { PasswordHasher } from './password/password.hasher.js';
+import { PrismaPasswordCredentialsRepository } from './password/prisma-password-credentials.repository.js';
 
 @Module({
   providers: [

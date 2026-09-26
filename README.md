@@ -25,15 +25,6 @@ Adjust `DATABASE_URL` in `.env` if you use a different database. `NODE_ENV`, `PO
 
 Future API routes use the `/api/v1` prefix. The health routes are outside that prefix.
 
-## Users and identities
-
-The schema is defined in [src/prisma/contract.prisma](src/prisma/contract.prisma).
-
-- Email display values are trimmed and normalized to Unicode NFC. Lookup keys additionally lowercase the complete address. `UserEmail.normalizedEmail` is unique across users.
-- `UserEmail.isPrimary` defaults to `false`. A partial unique index allows at most one primary email per user.
-- `AuthIdentity.providerUserId` stores the provider's account ID. `(provider, providerUserId)` is unique across identities, and `(userId, provider)` remains unique for each user.
-
-Code that creates an identity must supply `providerUserId`, including for `PASSWORD` identities. The repository does not currently contain an identity creation flow.
 
 ## Contract and migrations
 
