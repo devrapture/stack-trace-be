@@ -8,6 +8,10 @@
       "model": "AuthIdentity",
       "namespace": "public"
     },
+    "password_credential": {
+      "model": "PasswordCredential",
+      "namespace": "public"
+    },
     "user_emails": {
       "model": "UserEmail",
       "namespace": "public"
@@ -103,8 +107,8 @@
                   "plane": "domain"
                 }
               },
-              "providerUserId": {
-                "nullable": false,
+              "providerSubject": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -126,6 +130,22 @@
               }
             },
             "relations": {
+              "passwordCredential": {
+                "cardinality": "1:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "authIdentityId"
+                  ]
+                },
+                "to": {
+                  "model": "PasswordCredential",
+                  "namespace": "public"
+                }
+              },
               "user": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -154,8 +174,8 @@
                 "provider": {
                   "column": "provider"
                 },
-                "providerUserId": {
-                  "column": "provider_user_id"
+                "providerSubject": {
+                  "column": "provider_subject"
                 },
                 "updatedAt": {
                   "column": "updated_at"
@@ -166,6 +186,84 @@
               },
               "namespaceId": "public",
               "table": "auth_identities"
+            }
+          },
+          "PasswordCredential": {
+            "fields": {
+              "authIdentityId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "passwordHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "authIdentity": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "authIdentityId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "AuthIdentity",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "authIdentityId": {
+                  "column": "auth_identity_id"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "passwordHash": {
+                  "column": "password_hash"
+                },
+                "updatedAt": {
+                  "column": "updated_at"
+                }
+              },
+              "namespaceId": "public",
+              "table": "password_credential"
             }
           },
           "User": {
@@ -454,10 +552,10 @@
                     "plane": "storage"
                   }
                 },
-                "provider_user_id": {
+                "provider_subject": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": true
                 },
                 "updated_at": {
                   "codecId": "pg/timestamptz-temporal@1",
@@ -514,7 +612,72 @@
                 {
                   "columns": [
                     "provider",
-                    "provider_user_id"
+                    "provider_subject"
+                  ]
+                }
+              ]
+            },
+            "password_credential": {
+              "columns": {
+                "auth_identity_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "password_hash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updated_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "auth_identity_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "password_credential"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "auth_identities"
+                  }
+                }
+              ],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "auth_identity_id"
                   ]
                 }
               ]
@@ -750,10 +913,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "47b80f6e0a40f84788e6dc8a786d8d9f272e346998dd7ff90bbf37dd10450335"
+    "storageHash": "d1d40059a5f42c9e867d7c1b4eda5c727a286ca2f707692c5b04c9f38b500074"
   },
   "execution": {
-    "executionHash": "889b9500a087d58336bd8d3553ae5909b8b2e22bff36d537951e45fc5556d4e6",
+    "executionHash": "ded2d3a96083277bfa368d9d16795fe0d25647058313c378c9b6be5566597fc0",
     "mutations": {
       "defaults": [
         {
@@ -780,6 +943,32 @@
             "column": "updated_at",
             "namespace": "public",
             "table": "auth_identities"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "password_credential"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updated_at",
+            "namespace": "public",
+            "table": "password_credential"
           }
         },
         {
