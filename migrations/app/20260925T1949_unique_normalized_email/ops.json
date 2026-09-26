@@ -121,21 +121,21 @@
   },
   {
     "id": "setDefault.user_emails.is_primary",
-    "label": "Set default on \"user_emails\".\"is_primary\"",
+    "label": "Set default on user_emails.is_primary to false",
     "operationClass": "widening",
     "target": {
       "id": "postgres",
       "details": {
         "schema": "public",
         "objectType": "column",
-        "name": "is_primary",
-        "table": "user_emails"
+        "table": "user_emails",
+        "name": "is_primary"
       }
     },
     "precheck": [
       {
-        "description": "ensure column \"is_primary\" exists",
-        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "description": "verify is_primary exists",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3) AS result",
         "params": [
           "public",
           "user_emails",
@@ -145,18 +145,19 @@
     ],
     "execute": [
       {
-        "description": "set default on \"is_primary\"",
+        "description": "set is_primary default to false",
         "sql": "ALTER TABLE \"public\".\"user_emails\" ALTER COLUMN \"is_primary\" SET DEFAULT false"
       }
     ],
     "postcheck": [
       {
-        "description": "verify column \"is_primary\" has a default",
-        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NOT NULL)) AS \"result\"",
+        "description": "verify is_primary defaults to false",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3 AND column_default = $4) AS result",
         "params": [
           "public",
           "user_emails",
-          "is_primary"
+          "is_primary",
+          "false"
         ]
       }
     ]

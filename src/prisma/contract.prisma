@@ -55,14 +55,29 @@ model AuthIdentity {
   id             Uuid                 @id @default(uuid())
   userId         Uuid                 @map("user_id")
   provider       AuthProvider
-  providerUserId String               @map("provider_user_id")
-
-  user           User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
+  providerSubject String?      @map("provider_subject")
 
   createdAt      temporal.createdAt() @map("created_at")
   updatedAt      temporal.updatedAt() @map("updated_at")
 
+  passwordCredential PasswordCredential?
+  user           User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
+
   @@unique([userId, provider])
-  @@unique([provider, providerUserId])
+  @@unique([provider, providerSubject])
+  @@index([userId])
   @@map("auth_identities")
+}
+
+model PasswordCredential {
+  id Uuid @id @default(uuid())
+  passwordHash String @map("password_hash")
+  authIdentityId Uuid @unique() @map("auth_identity_id") 
+  
+  createdAt temporal.createdAt() @map("created_at")
+  updatedAt temporal.updatedAt() @map("updated_at")
+
+  authIdentity AuthIdentity @relation(fields:[authIdentityId], references:[id], onDelete:Cascade)
+
+  @@map("password_credential")
 }

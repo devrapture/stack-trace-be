@@ -1,0 +1,296 @@
+[
+  {
+    "id": "dropConstraint.auth_identities.auth_identities_provider_provider_user_id_key",
+    "label": "Drop constraint \"auth_identities_provider_provider_user_id_key\" on \"auth_identities\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "auth_identities_provider_provider_user_id_key",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"auth_identities_provider_provider_user_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_provider_provider_user_id_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"auth_identities_provider_provider_user_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" DROP CONSTRAINT \"auth_identities_provider_provider_user_id_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"auth_identities_provider_provider_user_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_provider_provider_user_id_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "renameColumn.auth_identities.provider_user_id.provider_subject",
+    "label": "Rename provider_user_id to provider_subject",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "table": "auth_identities",
+        "name": "provider_subject"
+      }
+    },
+    "precheck": [
+      {
+        "description": "verify old column exists and new column is absent",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3) AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $4) AS result",
+        "params": [
+          "public",
+          "auth_identities",
+          "provider_user_id",
+          "provider_subject"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "rename provider ID column without losing values",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" RENAME COLUMN \"provider_user_id\" TO \"provider_subject\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify new column exists and old column is absent",
+        "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3) AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $4) AS result",
+        "params": [
+          "public",
+          "auth_identities",
+          "provider_subject",
+          "provider_user_id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.auth_identities.provider_subject",
+    "label": "Drop NOT NULL on \"auth_identities\".\"provider_subject\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "provider_subject",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"provider_subject\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "auth_identities",
+          "provider_subject"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"provider_subject\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" ALTER COLUMN \"provider_subject\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"provider_subject\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "auth_identities",
+          "provider_subject",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.password_credential",
+    "label": "Create table \"password_credential\"",
+    "summary": "Creates table \"password_credential\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "password_credential"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"password_credential\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"password_credential\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"password_credential\"",
+        "sql": "CREATE TABLE \"public\".\"password_credential\" (\n  \"auth_identity_id\" uuid NOT NULL,\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"password_hash\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"password_credential\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"password_credential\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.auth_identities.auth_identities_provider_provider_subject_key",
+    "label": "Add unique constraint on \"auth_identities\" (provider, provider_subject)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "auth_identities_provider_provider_subject_key",
+        "table": "auth_identities"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"auth_identities_provider_provider_subject_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_provider_provider_subject_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"auth_identities_provider_provider_subject_key\"",
+        "sql": "ALTER TABLE \"public\".\"auth_identities\" ADD CONSTRAINT \"auth_identities_provider_provider_subject_key\" UNIQUE (\"provider\", \"provider_subject\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"auth_identities_provider_provider_subject_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "auth_identities_provider_provider_subject_key",
+          "public",
+          "\"public\".\"auth_identities\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.password_credential.password_credential_auth_identity_id_key",
+    "label": "Add unique constraint on \"password_credential\" (auth_identity_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "password_credential_auth_identity_id_key",
+        "table": "password_credential"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"password_credential_auth_identity_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "password_credential_auth_identity_id_key",
+          "public",
+          "\"public\".\"password_credential\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"password_credential_auth_identity_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"password_credential\" ADD CONSTRAINT \"password_credential_auth_identity_id_key\" UNIQUE (\"auth_identity_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"password_credential_auth_identity_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "password_credential_auth_identity_id_key",
+          "public",
+          "\"public\".\"password_credential\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.password_credential.password_credential_auth_identity_id_fkey",
+    "label": "Add foreign key \"password_credential_auth_identity_id_fkey\" on \"password_credential\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "password_credential_auth_identity_id_fkey",
+        "table": "password_credential"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"password_credential_auth_identity_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "password_credential_auth_identity_id_fkey",
+          "public",
+          "\"public\".\"password_credential\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"password_credential_auth_identity_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"password_credential\"\nADD CONSTRAINT \"password_credential_auth_identity_id_fkey\"\nFOREIGN KEY (\"auth_identity_id\")\nREFERENCES \"public\".\"auth_identities\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"password_credential_auth_identity_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "password_credential_auth_identity_id_fkey",
+          "public",
+          "\"public\".\"password_credential\""
+        ]
+      }
+    ]
+  }
+]
