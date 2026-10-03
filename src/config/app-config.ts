@@ -14,6 +14,9 @@ export interface AppConfig {
   readonly resendAPIKey: string;
   readonly resendFromEmail: string;
   readonly resendFromName: string;
+  readonly jwtKid: string;
+  readonly jwtPrivateKey: string;
+  readonly jwtPublicKey: string;
 }
 
 export const createAppConfig = (environment: ValidatedEnvironment): AppConfig =>
@@ -25,4 +28,7 @@ export const createAppConfig = (environment: ValidatedEnvironment): AppConfig =>
     resendAPIKey: environment.RESEND_API_KEY,
     resendFromEmail: environment.RESEND_FROM_EMAIL,
     resendFromName: environment.RESEND_FROM_NAME,
+    jwtKid: environment.JWT_KID,
+    jwtPrivateKey: environment.JWT_PRIVATE_KEY,
+    jwtPublicKey: environment.JWT_PUBLIC_KEY,
   });

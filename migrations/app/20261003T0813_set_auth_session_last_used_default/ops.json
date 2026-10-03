@@ -1,0 +1,44 @@
+[
+  {
+    "id": "setDefault.auth_sessions.last_used_at",
+    "label": "Set default on \"auth_sessions\".\"last_used_at\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "last_used_at",
+        "table": "auth_sessions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"last_used_at\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "auth_sessions",
+          "last_used_at"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "set default on \"last_used_at\"",
+        "sql": "ALTER TABLE \"public\".\"auth_sessions\" ALTER COLUMN \"last_used_at\" SET DEFAULT (now())"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"last_used_at\" has a default",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NOT NULL)) AS \"result\"",
+        "params": [
+          "public",
+          "auth_sessions",
+          "last_used_at"
+        ]
+      }
+    ]
+  }
+]

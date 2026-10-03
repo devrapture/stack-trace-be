@@ -12,6 +12,8 @@ export const ErrorCode = {
   NOT_READY: 'not_ready',
   PASSWORD_POLICY_VALIDATION: 'password_policy_validation',
   TOO_MANY_REQUESTS: 'too_many_requests',
+  INVALID_REFRESH_TOKEN: 'invalid_refresh_token',
+  REFRESH_TOKEN_REUSE_DETECTED: 'refresh_token_reuse_detected',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

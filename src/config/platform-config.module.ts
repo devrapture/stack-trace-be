@@ -36,6 +36,15 @@ const readValidatedEnvironment = (
   RESEND_FROM_NAME: config.getOrThrow('RESEND_FROM_NAME', {
     infer: true,
   }),
+  JWT_KID: config.getOrThrow('JWT_KID', {
+    infer: true,
+  }),
+  JWT_PRIVATE_KEY: config.getOrThrow('JWT_PRIVATE_KEY', {
+    infer: true,
+  }),
+  JWT_PUBLIC_KEY: config.getOrThrow('JWT_PUBLIC_KEY', {
+    infer: true,
+  }),
 });
 
 const appConfigProvider: FactoryProvider = {

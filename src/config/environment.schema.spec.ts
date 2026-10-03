@@ -6,15 +6,21 @@ const validEnvironment = {
   RESEND_API_KEY: 're_test_key',
   RESEND_FROM_EMAIL: 'noreply@example.com',
   RESEND_FROM_NAME: 'Stack Trace',
+  JWT_KID: 'test-key',
+  JWT_PRIVATE_KEY: 'test-private-key',
+  JWT_PUBLIC_KEY: 'test-public-key',
 };
 
-const resendVariables = [
+const requiredVariables = [
   'RESEND_API_KEY',
   'RESEND_FROM_EMAIL',
   'RESEND_FROM_NAME',
+  'JWT_KID',
+  'JWT_PRIVATE_KEY',
+  'JWT_PUBLIC_KEY',
 ] as const;
 
-describe('environmentSchema email configuration', () => {
+describe('environmentSchema configuration', () => {
   it('accepts a complete configuration', () => {
     const { error, value } = environmentSchema.validate({
       ...validEnvironment,
@@ -27,7 +33,7 @@ describe('environmentSchema email configuration', () => {
 
   it.each(
     NODE_ENVIRONMENTS.flatMap((environment) =>
-      resendVariables.map((variable) => [environment, variable] as const),
+      requiredVariables.map((variable) => [environment, variable] as const),
     ),
   )('in %s, rejects a missing %s', (environment, variable) => {
     const { error } = environmentSchema.validate(

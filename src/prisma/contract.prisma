@@ -21,6 +21,22 @@ enum EmailVerificationPurpose {
   REGISTRATION
 }
 
+enum SessionClientType {
+  WEB
+  IOS
+  ANDROID
+  OTHER
+}
+
+enum SessionRevokedReason {
+  LOGOUT
+  LOGOUT_ALL
+  REUSE_DETECTED
+  PASSWORD_CHANGE
+  SESSION_LIMIT_EXCEEDED
+  ADMIN
+}
+
 model User {
   id          Uuid                 @id @default(uuid())
   publicId    Uuid                 @unique @default(uuid())
@@ -29,10 +45,13 @@ model User {
   role        UserRole             @default(USER)
   status      UserStatus           @default(PENDING)
   lastLoginAt Timestamptz(3)?      @map("last_login_at")
-  createdAt   temporal.createdAt() @map("created_at")
+  createdAt   Timestamptz @map("created_at") @default(now())
   updatedAt   temporal.updatedAt() @map("updated_at")
 
   email       UserEmail[]
+  authIdentities               AuthIdentity[]
+  authSessions AuthSession[]
+  emailVerificationChallenges EmailVerificationChallenge[]
 
   @@map("users")
 }
@@ -44,7 +63,7 @@ model UserEmail {
   normalizedEmail String               @map("normalized_email")
   isPrimary       Boolean              @map("is_primary") @default(false)
   verifiedAt      Timestamptz(3)?      @map("verified_at")
-  createdAt       temporal.createdAt() @map("created_at")
+  createdAt       Timestamptz @map("created_at") @default(now())
   updatedAt       temporal.updatedAt() @map("updated_at")
   user            User                 @relation(fields:[userId], references:[id], onDelete: Cascade)
 
@@ -61,7 +80,7 @@ model AuthIdentity {
   provider       AuthProvider
   providerSubject String?      @map("provider_subject")
 
-  createdAt      temporal.createdAt() @map("created_at")
+  createdAt      Timestamptz @map("created_at") @default(now())
   updatedAt      temporal.updatedAt() @map("updated_at")
 
   passwordCredential PasswordCredential?
@@ -77,8 +96,8 @@ model PasswordCredential {
   id Uuid @id @default(uuid())
   passwordHash String @map("password_hash")
   authIdentityId Uuid @unique() @map("auth_identity_id") 
-  
-  createdAt temporal.createdAt() @map("created_at")
+
+  createdAt Timestamptz @map("created_at") @default(now())
   updatedAt temporal.updatedAt() @map("updated_at")
 
   authIdentity AuthIdentity @relation(fields:[authIdentityId], references:[id], onDelete:Cascade)
@@ -96,10 +115,33 @@ model EmailVerificationChallenge {
   maxAttempts Int @map("max_attempts")
   consumedAt Timestamptz(3)? @map("consumed_at")
 
-  createdAt      temporal.createdAt() @map("created_at")
+  createdAt      Timestamptz @map("created_at") @default(now())
   updatedAt      temporal.updatedAt() @map("updated_at")
 
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)
   @@index([userId,purpose])
   @@map("email_verification_challenges")
+}
+
+
+model AuthSession {
+  id Uuid @id @default(uuid())
+  userId Uuid @map("user_id")
+  refreshTokenHash String @unique @map("refresh_token_hash")
+  previousTokenHash String? @unique() @map("previous_token_hash")
+  clientType SessionClientType @map("client_type")
+  deviceName String? @map("device_name")
+
+  createdAt Timestamptz @map("created_at") @default(now())
+  updatedAt temporal.updatedAt() @map("updated_at")
+
+  lastUsedAt Timestamptz(3) @map("last_used_at") @default(now())
+  expiresAt Timestamptz(3) @map("expires_at")
+  revokedAt Timestamptz(3)? @map("revoked_at")
+  revokedReason SessionRevokedReason? @map("revoked_reason")
+
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+
+  @@index([userId])
+  @@map("auth_sessions")
 }

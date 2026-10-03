@@ -8,6 +8,10 @@
       "model": "AuthIdentity",
       "namespace": "public"
     },
+    "auth_sessions": {
+      "model": "AuthSession",
+      "namespace": "public"
+    },
     "email_verification_challenges": {
       "model": "EmailVerificationChallenge",
       "namespace": "public"
@@ -52,6 +56,56 @@
               {
                 "name": "REGISTRATION",
                 "value": "REGISTRATION"
+              }
+            ]
+          },
+          "SessionClientType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "WEB",
+                "value": "WEB"
+              },
+              {
+                "name": "IOS",
+                "value": "IOS"
+              },
+              {
+                "name": "ANDROID",
+                "value": "ANDROID"
+              },
+              {
+                "name": "OTHER",
+                "value": "OTHER"
+              }
+            ]
+          },
+          "SessionRevokedReason": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "LOGOUT",
+                "value": "LOGOUT"
+              },
+              {
+                "name": "LOGOUT_ALL",
+                "value": "LOGOUT_ALL"
+              },
+              {
+                "name": "REUSE_DETECTED",
+                "value": "REUSE_DETECTED"
+              },
+              {
+                "name": "PASSWORD_CHANGE",
+                "value": "PASSWORD_CHANGE"
+              },
+              {
+                "name": "SESSION_LIMIT_EXCEEDED",
+                "value": "SESSION_LIMIT_EXCEEDED"
+              },
+              {
+                "name": "ADMIN",
+                "value": "ADMIN"
               }
             ]
           },
@@ -199,6 +253,175 @@
               },
               "namespaceId": "public",
               "table": "auth_identities"
+            }
+          },
+          "AuthSession": {
+            "fields": {
+              "clientType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "SessionClientType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "deviceName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastUsedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "previousTokenHash": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "refreshTokenHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "revokedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "revokedReason": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "SessionRevokedReason",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "clientType": {
+                  "column": "client_type"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "deviceName": {
+                  "column": "device_name"
+                },
+                "expiresAt": {
+                  "column": "expires_at"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "lastUsedAt": {
+                  "column": "last_used_at"
+                },
+                "previousTokenHash": {
+                  "column": "previous_token_hash"
+                },
+                "refreshTokenHash": {
+                  "column": "refresh_token_hash"
+                },
+                "revokedAt": {
+                  "column": "revoked_at"
+                },
+                "revokedReason": {
+                  "column": "revoked_reason"
+                },
+                "updatedAt": {
+                  "column": "updated_at"
+                },
+                "userId": {
+                  "column": "user_id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "auth_sessions"
             }
           },
           "EmailVerificationChallenge": {
@@ -501,6 +724,36 @@
               }
             },
             "relations": {
+              "authIdentities": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "AuthIdentity",
+                  "namespace": "public"
+                }
+              },
+              "authSessions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "AuthSession",
+                  "namespace": "public"
+                }
+              },
               "email": {
                 "cardinality": "1:N",
                 "on": {
@@ -513,6 +766,21 @@
                 },
                 "to": {
                   "model": "UserEmail",
+                  "namespace": "public"
+                }
+              },
+              "emailVerificationChallenges": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "EmailVerificationChallenge",
                   "namespace": "public"
                 }
               }
@@ -766,6 +1034,157 @@
                   "columns": [
                     "provider",
                     "provider_subject"
+                  ]
+                }
+              ]
+            },
+            "auth_sessions": {
+              "checks": [
+                {
+                  "expression": "\"client_type\" IN ('WEB', 'IOS', 'ANDROID', 'OTHER')",
+                  "name": "auth_sessions_client_type_check_a9640be8",
+                  "prefix": "auth_sessions_client_type_check"
+                },
+                {
+                  "expression": "\"revoked_reason\" IN ('LOGOUT', 'LOGOUT_ALL', 'REUSE_DETECTED', 'PASSWORD_CHANGE', 'SESSION_LIMIT_EXCEEDED', 'ADMIN')",
+                  "name": "auth_sessions_revoked_reason_check_33704d4a",
+                  "prefix": "auth_sessions_revoked_reason_check"
+                }
+              ],
+              "columns": {
+                "client_type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "SessionClientType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "device_name": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "expires_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "last_used_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "previous_token_hash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "refresh_token_hash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "revoked_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "revoked_reason": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "SessionRevokedReason",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "updated_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "auth_sessions"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "user_id"
+                  ],
+                  "name": "auth_sessions_user_id_idx_6c952402",
+                  "prefix": "auth_sessions_user_id_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "refresh_token_hash"
+                  ]
+                },
+                {
+                  "columns": [
+                    "previous_token_hash"
                   ]
                 }
               ]
@@ -1171,6 +1590,26 @@
                 "REGISTRATION"
               ]
             },
+            "SessionClientType": {
+              "kind": "valueSet",
+              "values": [
+                "WEB",
+                "IOS",
+                "ANDROID",
+                "OTHER"
+              ]
+            },
+            "SessionRevokedReason": {
+              "kind": "valueSet",
+              "values": [
+                "LOGOUT",
+                "LOGOUT_ALL",
+                "REUSE_DETECTED",
+                "PASSWORD_CHANGE",
+                "SESSION_LIMIT_EXCEEDED",
+                "ADMIN"
+              ]
+            },
             "UserRole": {
               "kind": "valueSet",
               "values": [
@@ -1193,10 +1632,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "081b63f11ea91c1382a8c554e9e79e4aa7cf8dc1d716b6075693c8ac95a3be93"
+    "storageHash": "4342a0c855249d61e3b42e68dbd76f35b2634777bed3e3c732634b8e265c9078"
   },
   "execution": {
-    "executionHash": "d82e6e6dab6922aef6fd691042dffdf152c8c3a41214e6c29cb6d5c10c2e034c",
+    "executionHash": "8cc6f39cbaf9d80406d9863ba03d9cffe7ed0c5a1dc89bbe02e5a3ffd9a227b7",
     "mutations": {
       "defaults": [
         {
@@ -1205,9 +1644,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "auth_identities"
+            "entry": "auth_identities",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -1220,9 +1659,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updated_at",
-            "namespace": "public",
-            "table": "auth_identities"
+            "entry": "auth_identities",
+            "field": "updated_at",
+            "namespace": "public"
           }
         },
         {
@@ -1231,9 +1670,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "email_verification_challenges"
+            "entry": "auth_sessions",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -1246,9 +1685,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updated_at",
-            "namespace": "public",
-            "table": "email_verification_challenges"
+            "entry": "auth_sessions",
+            "field": "updated_at",
+            "namespace": "public"
           }
         },
         {
@@ -1257,9 +1696,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "password_credential"
+            "entry": "email_verification_challenges",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -1272,9 +1711,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updated_at",
-            "namespace": "public",
-            "table": "password_credential"
+            "entry": "email_verification_challenges",
+            "field": "updated_at",
+            "namespace": "public"
           }
         },
         {
@@ -1283,9 +1722,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "user_emails"
+            "entry": "password_credential",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -1298,9 +1737,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updated_at",
-            "namespace": "public",
-            "table": "user_emails"
+            "entry": "password_credential",
+            "field": "updated_at",
+            "namespace": "public"
           }
         },
         {
@@ -1309,20 +1748,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "id",
-            "namespace": "public",
-            "table": "users"
-          }
-        },
-        {
-          "onCreate": {
-            "id": "uuidv4",
-            "kind": "generator"
-          },
-          "ref": {
-            "column": "publicId",
-            "namespace": "public",
-            "table": "users"
+            "entry": "user_emails",
+            "field": "id",
+            "namespace": "public"
           }
         },
         {
@@ -1335,9 +1763,46 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updated_at",
-            "namespace": "public",
-            "table": "users"
+            "entry": "user_emails",
+            "field": "updated_at",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "users",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "users",
+            "field": "publicId",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "users",
+            "field": "updated_at",
+            "namespace": "public"
           }
         }
       ]
@@ -1356,6 +1821,8 @@
       "checkConstraint": true,
       "defaultInInsert": true,
       "enums": true,
+      "insertOnConflictSkip": true,
+      "insertOnConflictWithoutTarget": true,
       "lateral": true,
       "returning": true,
       "scalarList": true

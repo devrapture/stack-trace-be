@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d1d40059a5f42c9e867d7c1b4eda5c727a286ca2f707692c5b04c9f38b500074'>;
+  StorageHashBase<'3c5d8f5216de3553746c3eb26ae048790d6da987b0909224097a9a3132843270'>;
 export type ExecutionHash =
-  ExecutionHashBase<'ded2d3a96083277bfa368d9d16795fe0d25647058313c378c9b6be5566597fc0'>;
+  ExecutionHashBase<'64b949be1533ce5c286eb66cc02c92794411983a705d8c3d8889664d90d49370'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -250,6 +250,39 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
+    readonly AuthSession: {
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly userId: CodecTypes['pg/uuid@1']['output'];
+      readonly refreshTokenHash: CodecTypes['pg/text@1']['output'];
+      readonly previousTokenHash: CodecTypes['pg/text@1']['output'] | null;
+      readonly clientType: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
+      readonly deviceName: CodecTypes['pg/text@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly lastUsedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly revokedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly revokedReason:
+        | 'LOGOUT'
+        | 'LOGOUT_ALL'
+        | 'REUSE_DETECTED'
+        | 'PASSWORD_CHANGE'
+        | 'SESSION_LIMIT_EXCEEDED'
+        | 'ADMIN'
+        | null;
+    };
+    readonly EmailVerificationChallenge: {
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly userId: CodecTypes['pg/uuid@1']['output'];
+      readonly purpose: 'REGISTRATION';
+      readonly otpHash: CodecTypes['pg/text@1']['output'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly attemptCount: CodecTypes['pg/int4@1']['output'];
+      readonly maxAttempts: CodecTypes['pg/int4@1']['output'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    };
     readonly PasswordCredential: {
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly passwordHash: CodecTypes['pg/text@1']['output'];
@@ -260,7 +293,7 @@ export type FieldOutputTypes = {
     readonly User: {
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly publicId: CodecTypes['pg/uuid@1']['output'];
-      readonly displayName: CodecTypes['pg/text@1']['output'];
+      readonly displayName: CodecTypes['pg/text@1']['output'] | null;
       readonly avatarUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'USER' | 'ADMIN';
       readonly status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
@@ -290,6 +323,39 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
+    readonly AuthSession: {
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly userId: CodecTypes['pg/uuid@1']['input'];
+      readonly refreshTokenHash: CodecTypes['pg/text@1']['input'];
+      readonly previousTokenHash: CodecTypes['pg/text@1']['input'] | null;
+      readonly clientType: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
+      readonly deviceName: CodecTypes['pg/text@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly lastUsedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly revokedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly revokedReason:
+        | 'LOGOUT'
+        | 'LOGOUT_ALL'
+        | 'REUSE_DETECTED'
+        | 'PASSWORD_CHANGE'
+        | 'SESSION_LIMIT_EXCEEDED'
+        | 'ADMIN'
+        | null;
+    };
+    readonly EmailVerificationChallenge: {
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly userId: CodecTypes['pg/uuid@1']['input'];
+      readonly purpose: 'REGISTRATION';
+      readonly otpHash: CodecTypes['pg/text@1']['input'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly attemptCount: CodecTypes['pg/int4@1']['input'];
+      readonly maxAttempts: CodecTypes['pg/int4@1']['input'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+    };
     readonly PasswordCredential: {
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly passwordHash: CodecTypes['pg/text@1']['input'];
@@ -300,7 +366,7 @@ export type FieldInputTypes = {
     readonly User: {
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly publicId: CodecTypes['pg/uuid@1']['input'];
-      readonly displayName: CodecTypes['pg/text@1']['input'];
+      readonly displayName: CodecTypes['pg/text@1']['input'] | null;
       readonly avatarUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'USER' | 'ADMIN';
       readonly status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
@@ -330,6 +396,39 @@ export type StorageColumnTypes = {
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly user_id: CodecTypes['pg/uuid@1']['output'];
     };
+    readonly auth_sessions: {
+      readonly client_type: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly device_name: CodecTypes['pg/text@1']['output'] | null;
+      readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly last_used_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly previous_token_hash: CodecTypes['pg/text@1']['output'] | null;
+      readonly refresh_token_hash: CodecTypes['pg/text@1']['output'];
+      readonly revoked_at: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly revoked_reason:
+        | 'LOGOUT'
+        | 'LOGOUT_ALL'
+        | 'REUSE_DETECTED'
+        | 'PASSWORD_CHANGE'
+        | 'SESSION_LIMIT_EXCEEDED'
+        | 'ADMIN'
+        | null;
+      readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly user_id: CodecTypes['pg/uuid@1']['output'];
+    };
+    readonly email_verification_challenges: {
+      readonly attempt_count: CodecTypes['pg/int4@1']['output'];
+      readonly consumed_at: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly max_attempts: CodecTypes['pg/int4@1']['output'];
+      readonly otp_hash: CodecTypes['pg/text@1']['output'];
+      readonly purpose: 'REGISTRATION';
+      readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly user_id: CodecTypes['pg/uuid@1']['output'];
+    };
     readonly password_credential: {
       readonly auth_identity_id: CodecTypes['pg/uuid@1']['output'];
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -350,7 +449,7 @@ export type StorageColumnTypes = {
     readonly users: {
       readonly avatar_url: CodecTypes['pg/text@1']['output'] | null;
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly display_name: CodecTypes['pg/text@1']['output'];
+      readonly display_name: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly last_login_at: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly publicId: CodecTypes['pg/uuid@1']['output'];
@@ -367,6 +466,39 @@ export type StorageColumnInputTypes = {
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly provider: 'PASSWORD' | 'GOOGLE' | 'GITHUB';
       readonly provider_subject: CodecTypes['pg/text@1']['input'] | null;
+      readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly user_id: CodecTypes['pg/uuid@1']['input'];
+    };
+    readonly auth_sessions: {
+      readonly client_type: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly device_name: CodecTypes['pg/text@1']['input'] | null;
+      readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly last_used_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly previous_token_hash: CodecTypes['pg/text@1']['input'] | null;
+      readonly refresh_token_hash: CodecTypes['pg/text@1']['input'];
+      readonly revoked_at: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly revoked_reason:
+        | 'LOGOUT'
+        | 'LOGOUT_ALL'
+        | 'REUSE_DETECTED'
+        | 'PASSWORD_CHANGE'
+        | 'SESSION_LIMIT_EXCEEDED'
+        | 'ADMIN'
+        | null;
+      readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly user_id: CodecTypes['pg/uuid@1']['input'];
+    };
+    readonly email_verification_challenges: {
+      readonly attempt_count: CodecTypes['pg/int4@1']['input'];
+      readonly consumed_at: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly max_attempts: CodecTypes['pg/int4@1']['input'];
+      readonly otp_hash: CodecTypes['pg/text@1']['input'];
+      readonly purpose: 'REGISTRATION';
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly user_id: CodecTypes['pg/uuid@1']['input'];
     };
@@ -390,7 +522,7 @@ export type StorageColumnInputTypes = {
     readonly users: {
       readonly avatar_url: CodecTypes['pg/text@1']['input'] | null;
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly display_name: CodecTypes['pg/text@1']['input'];
+      readonly display_name: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly last_login_at: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly publicId: CodecTypes['pg/uuid@1']['input'];
@@ -405,7 +537,7 @@ export namespace Models {
   export type public_User = {
     id: CodecTypes['pg/uuid@1']['output'];
     publicId: CodecTypes['pg/uuid@1']['output'];
-    displayName: CodecTypes['pg/text@1']['output'];
+    displayName: CodecTypes['pg/text@1']['output'] | null;
     avatarUrl: CodecTypes['pg/text@1']['output'] | null;
     role: 'USER' | 'ADMIN';
     status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
@@ -447,6 +579,43 @@ export namespace Models {
     authIdentity: public_AuthIdentity;
     readonly [RelationKeys]?: 'authIdentity';
   };
+  export type public_EmailVerificationChallenge = {
+    id: CodecTypes['pg/uuid@1']['output'];
+    userId: CodecTypes['pg/uuid@1']['output'];
+    purpose: 'REGISTRATION';
+    otpHash: CodecTypes['pg/text@1']['output'];
+    expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    attemptCount: CodecTypes['pg/int4@1']['output'];
+    maxAttempts: CodecTypes['pg/int4@1']['output'];
+    consumedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    user: public_User;
+    readonly [RelationKeys]?: 'user';
+  };
+  export type public_AuthSession = {
+    id: CodecTypes['pg/uuid@1']['output'];
+    userId: CodecTypes['pg/uuid@1']['output'];
+    refreshTokenHash: CodecTypes['pg/text@1']['output'];
+    previousTokenHash: CodecTypes['pg/text@1']['output'] | null;
+    clientType: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
+    deviceName: CodecTypes['pg/text@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    lastUsedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    revokedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+    revokedReason:
+      | 'LOGOUT'
+      | 'LOGOUT_ALL'
+      | 'REUSE_DETECTED'
+      | 'PASSWORD_CHANGE'
+      | 'SESSION_LIMIT_EXCEEDED'
+      | 'ADMIN'
+      | null;
+    user: public_User;
+    readonly [RelationKeys]?: 'user';
+  };
 }
 
 export declare const models: {
@@ -455,6 +624,8 @@ export declare const models: {
     UserEmail: Models.public_UserEmail;
     AuthIdentity: Models.public_AuthIdentity;
     PasswordCredential: Models.public_PasswordCredential;
+    EmailVerificationChallenge: Models.public_EmailVerificationChallenge;
+    AuthSession: Models.public_AuthSession;
   };
 };
 
@@ -528,6 +699,188 @@ type ContractBase = Omit<
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'auth_identities';
+                    readonly columns: readonly ['user_id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'users';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly auth_sessions: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly user_id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly refresh_token_hash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly previous_token_hash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly client_type: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly device_name: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly created_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly updated_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                };
+                readonly last_used_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly expires_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly revoked_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: true;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly revoked_reason: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['refresh_token_hash'] },
+                { readonly columns: readonly ['previous_token_hash'] },
+              ];
+              indexes: readonly [
+                {
+                  readonly name: 'auth_sessions_user_id_idx_6c952402';
+                  readonly prefix: 'auth_sessions_user_id_idx';
+                  readonly columns: readonly ['user_id'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'auth_sessions';
+                    readonly columns: readonly ['user_id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'users';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly email_verification_challenges: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly user_id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly purpose: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly otp_hash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly expires_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly attempt_count: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly max_attempts: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly consumed_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: true;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly created_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly updated_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'email_verification_challenges_user_id_purpose_idx_b55b3751';
+                  readonly prefix: 'email_verification_challenges_user_id_purpose_idx';
+                  readonly columns: readonly ['user_id', 'purpose'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'email_verification_challenges_user_id_idx_6c952402';
+                  readonly prefix: 'email_verification_challenges_user_id_idx';
+                  readonly columns: readonly ['user_id'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'email_verification_challenges';
                     readonly columns: readonly ['user_id'];
                   };
                   readonly target: {
@@ -675,7 +1028,7 @@ type ContractBase = Omit<
                 readonly display_name: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
                 };
                 readonly avatar_url: {
                   readonly nativeType: 'text';
@@ -729,6 +1082,25 @@ type ContractBase = Omit<
               readonly kind: 'valueSet';
               readonly values: readonly ['PASSWORD', 'GOOGLE', 'GITHUB'];
             };
+            readonly EmailVerificationPurpose: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['REGISTRATION'];
+            };
+            readonly SessionClientType: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['WEB', 'IOS', 'ANDROID', 'OTHER'];
+            };
+            readonly SessionRevokedReason: {
+              readonly kind: 'valueSet';
+              readonly values: readonly [
+                'LOGOUT',
+                'LOGOUT_ALL',
+                'REUSE_DETECTED',
+                'PASSWORD_CHANGE',
+                'SESSION_LIMIT_EXCEEDED',
+                'ADMIN',
+              ];
+            };
             readonly UserRole: {
               readonly kind: 'valueSet';
               readonly values: readonly ['USER', 'ADMIN'];
@@ -760,6 +1132,14 @@ type ContractBase = Omit<
     readonly password_credential: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'PasswordCredential';
+    };
+    readonly email_verification_challenges: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'EmailVerificationChallenge';
+    };
+    readonly auth_sessions: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'AuthSession';
     };
   };
   readonly domain: {
@@ -835,6 +1215,190 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly AuthSession: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly refreshTokenHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly previousTokenHash: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly clientType: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly deviceName: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly lastUsedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly expiresAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly revokedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly revokedReason: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'auth_sessions';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly userId: { readonly column: 'user_id' };
+                readonly refreshTokenHash: { readonly column: 'refresh_token_hash' };
+                readonly previousTokenHash: { readonly column: 'previous_token_hash' };
+                readonly clientType: { readonly column: 'client_type' };
+                readonly deviceName: { readonly column: 'device_name' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly updatedAt: { readonly column: 'updated_at' };
+                readonly lastUsedAt: { readonly column: 'last_used_at' };
+                readonly expiresAt: { readonly column: 'expires_at' };
+                readonly revokedAt: { readonly column: 'revoked_at' };
+                readonly revokedReason: { readonly column: 'revoked_reason' };
+              };
+            };
+          };
+          readonly EmailVerificationChallenge: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly purpose: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly otpHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly expiresAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly attemptCount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly maxAttempts: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly consumedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+            };
+            readonly relations: {
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'email_verification_challenges';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly userId: { readonly column: 'user_id' };
+                readonly purpose: { readonly column: 'purpose' };
+                readonly otpHash: { readonly column: 'otp_hash' };
+                readonly expiresAt: { readonly column: 'expires_at' };
+                readonly attemptCount: { readonly column: 'attempt_count' };
+                readonly maxAttempts: { readonly column: 'max_attempts' };
+                readonly consumedAt: { readonly column: 'consumed_at' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly updatedAt: { readonly column: 'updated_at' };
+              };
+            };
+          };
           readonly PasswordCredential: {
             readonly fields: {
               readonly id: {
@@ -901,7 +1465,7 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
               };
               readonly displayName: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly avatarUrl: {
@@ -1065,6 +1629,32 @@ type ContractBase = Omit<
               { readonly name: 'GITHUB'; readonly value: 'GITHUB' },
             ];
           };
+          readonly EmailVerificationPurpose: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'REGISTRATION'; readonly value: 'REGISTRATION' },
+            ];
+          };
+          readonly SessionClientType: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'WEB'; readonly value: 'WEB' },
+              { readonly name: 'IOS'; readonly value: 'IOS' },
+              { readonly name: 'ANDROID'; readonly value: 'ANDROID' },
+              { readonly name: 'OTHER'; readonly value: 'OTHER' },
+            ];
+          };
+          readonly SessionRevokedReason: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'LOGOUT'; readonly value: 'LOGOUT' },
+              { readonly name: 'LOGOUT_ALL'; readonly value: 'LOGOUT_ALL' },
+              { readonly name: 'REUSE_DETECTED'; readonly value: 'REUSE_DETECTED' },
+              { readonly name: 'PASSWORD_CHANGE'; readonly value: 'PASSWORD_CHANGE' },
+              { readonly name: 'SESSION_LIMIT_EXCEEDED'; readonly value: 'SESSION_LIMIT_EXCEEDED' },
+              { readonly name: 'ADMIN'; readonly value: 'ADMIN' },
+            ];
+          };
         };
       };
     };
@@ -1103,6 +1693,40 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly entry: 'auth_identities';
+            readonly field: 'updated_at';
+            readonly namespace: 'public';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+        },
+        {
+          readonly ref: {
+            readonly entry: 'auth_sessions';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
+        },
+        {
+          readonly ref: {
+            readonly entry: 'auth_sessions';
+            readonly field: 'updated_at';
+            readonly namespace: 'public';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
+        },
+        {
+          readonly ref: {
+            readonly entry: 'email_verification_challenges';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
+        },
+        {
+          readonly ref: {
+            readonly entry: 'email_verification_challenges';
             readonly field: 'updated_at';
             readonly namespace: 'public';
           };

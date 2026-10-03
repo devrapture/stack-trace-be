@@ -1343,93 +1343,93 @@ type ContractBase = Omit<
       readonly defaults: readonly [
         {
           readonly ref: {
+            readonly entry: 'auth_identities';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'auth_identities';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
           readonly ref: {
+            readonly entry: 'auth_identities';
+            readonly field: 'updated_at';
             readonly namespace: 'public';
-            readonly table: 'auth_identities';
-            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'email_verification_challenges';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'email_verification_challenges';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
           readonly ref: {
+            readonly entry: 'email_verification_challenges';
+            readonly field: 'updated_at';
             readonly namespace: 'public';
-            readonly table: 'email_verification_challenges';
-            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'password_credential';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'password_credential';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
           readonly ref: {
+            readonly entry: 'password_credential';
+            readonly field: 'updated_at';
             readonly namespace: 'public';
-            readonly table: 'password_credential';
-            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'user_emails';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'user_emails';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
           readonly ref: {
+            readonly entry: 'user_emails';
+            readonly field: 'updated_at';
             readonly namespace: 'public';
-            readonly table: 'user_emails';
-            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };
         },
         {
           readonly ref: {
+            readonly entry: 'users';
+            readonly field: 'id';
             readonly namespace: 'public';
-            readonly table: 'users';
-            readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
           readonly ref: {
+            readonly entry: 'users';
+            readonly field: 'publicId';
             readonly namespace: 'public';
-            readonly table: 'users';
-            readonly column: 'publicId';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
         },
         {
           readonly ref: {
+            readonly entry: 'users';
+            readonly field: 'updated_at';
             readonly namespace: 'public';
-            readonly table: 'users';
-            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'instantNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'instantNow' };

@@ -23,6 +23,9 @@ export interface ValidatedEnvironment {
   readonly RESEND_API_KEY: string;
   readonly RESEND_FROM_EMAIL: string;
   readonly RESEND_FROM_NAME: string;
+  readonly JWT_KID: string;
+  readonly JWT_PRIVATE_KEY: string;
+  readonly JWT_PUBLIC_KEY: string;
 }
 
 export const environmentSchema = Joi.object<ValidatedEnvironment>({
@@ -51,4 +54,7 @@ export const environmentSchema = Joi.object<ValidatedEnvironment>({
   RESEND_API_KEY: Joi.string().trim().required(),
   RESEND_FROM_EMAIL: Joi.string().trim().email().required(),
   RESEND_FROM_NAME: Joi.string().trim().required(),
+  JWT_KID: Joi.string().trim().required(),
+  JWT_PRIVATE_KEY: Joi.string().trim().required(),
+  JWT_PUBLIC_KEY: Joi.string().trim().required(),
 });
