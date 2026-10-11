@@ -1,8 +1,9 @@
 import { FieldOutputTypes } from '../prisma/contract';
 import { TransactionClient } from '../prisma/db';
+import type { SessionClientTypeName } from './session-client-type.js';
 
 export const AUTH_SESSIONS_REPOSITORY = Symbol('AUTH_SESSIONS_REPOSITORY');
-export type SessionClientTypeName = 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
+export type { SessionClientTypeName } from './session-client-type.js';
 export type AuthSessionFields = FieldOutputTypes['public']['AuthSession'];
 export type SessionRevokedReasonName =
   | 'LOGOUT'

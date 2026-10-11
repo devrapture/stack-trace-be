@@ -4,6 +4,7 @@ import { AppLoggerModule } from './common/logging/logging.module.js';
 import { PlatformConfigModule } from './config/platform-config.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { OauthModule } from './oauth/oauth.module.js';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PrismaModule,
     HealthModule,
     AuthModule,
+    OauthModule,
   ],
 })
 export class AppModule {}

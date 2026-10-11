@@ -1,0 +1,164 @@
+[
+  {
+    "id": "table.oauth_states",
+    "label": "Create table \"oauth_states\"",
+    "summary": "Creates table \"oauth_states\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"oauth_states\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"oauth_states\"",
+        "sql": "CREATE TABLE \"public\".\"oauth_states\" (\n  \"client_type\" text NOT NULL,\n  \"consumed_at\" timestamptz(3),\n  \"created_at\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"expires_at\" timestamptz(3) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"intent\" text NOT NULL,\n  \"linking_user_id\" uuid NOT NULL,\n  \"nonce\" text,\n  \"pkce_verifier\" text,\n  \"provider\" text NOT NULL,\n  \"redirect_uri\" text NOT NULL,\n  \"state\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"oauth_states_client_type_check_a9640be8\" CHECK (\"client_type\" IN ('WEB', 'IOS', 'ANDROID', 'OTHER')),\n  CONSTRAINT \"oauth_states_intent_check_3c7e161e\" CHECK (\"intent\" IN ('LOGIN', 'LINK')),\n  CONSTRAINT \"oauth_states_provider_check_5918ff78\" CHECK (\"provider\" IN ('GOOGLE', 'GITHUB'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"oauth_states\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.oauth_states.oauth_states_state_key",
+    "label": "Add unique constraint on \"oauth_states\" (state)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "oauth_states_state_key",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"oauth_states_state_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "oauth_states_state_key",
+          "public",
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"oauth_states_state_key\"",
+        "sql": "ALTER TABLE \"public\".\"oauth_states\" ADD CONSTRAINT \"oauth_states_state_key\" UNIQUE (\"state\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"oauth_states_state_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "oauth_states_state_key",
+          "public",
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.oauth_states.oauth_states_linking_user_id_idx_db1e27f9",
+    "label": "Create index \"oauth_states_linking_user_id_idx_db1e27f9\" on \"oauth_states\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "oauth_states_linking_user_id_idx_db1e27f9",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"oauth_states_linking_user_id_idx_db1e27f9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_states_linking_user_id_idx_db1e27f9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"oauth_states_linking_user_id_idx_db1e27f9\"",
+        "sql": "CREATE INDEX \"oauth_states_linking_user_id_idx_db1e27f9\" ON \"public\".\"oauth_states\" (\"linking_user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"oauth_states_linking_user_id_idx_db1e27f9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_states_linking_user_id_idx_db1e27f9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.oauth_states.oauth_states_linking_user_id_fkey",
+    "label": "Add foreign key \"oauth_states_linking_user_id_fkey\" on \"oauth_states\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "oauth_states_linking_user_id_fkey",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"oauth_states_linking_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "oauth_states_linking_user_id_fkey",
+          "public",
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"oauth_states_linking_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"oauth_states\"\nADD CONSTRAINT \"oauth_states_linking_user_id_fkey\"\nFOREIGN KEY (\"linking_user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"oauth_states_linking_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "oauth_states_linking_user_id_fkey",
+          "public",
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ]
+  }
+]

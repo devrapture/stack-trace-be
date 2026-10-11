@@ -16,6 +16,10 @@
       "model": "EmailVerificationChallenge",
       "namespace": "public"
     },
+    "oauth_states": {
+      "model": "OAuthState",
+      "namespace": "public"
+    },
     "password_credential": {
       "model": "PasswordCredential",
       "namespace": "public"
@@ -60,6 +64,32 @@
               {
                 "name": "REGISTRATION",
                 "value": "REGISTRATION"
+              }
+            ]
+          },
+          "OAuthIntent": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "LOGIN",
+                "value": "LOGIN"
+              },
+              {
+                "name": "LINK",
+                "value": "LINK"
+              }
+            ]
+          },
+          "OAuthProviderType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "GOOGLE",
+                "value": "GOOGLE"
+              },
+              {
+                "name": "GITHUB",
+                "value": "GITHUB"
               }
             ]
           },
@@ -568,6 +598,181 @@
               "table": "email_verification_challenges"
             }
           },
+          "OAuthState": {
+            "fields": {
+              "clientType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "SessionClientType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "consumedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "intent": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OAuthIntent",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "linkingUserId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "nonce": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pkceVerifier": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OAuthProviderType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "redirectUri": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "state": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "linkingUse": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "linkingUserId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "clientType": {
+                  "column": "client_type"
+                },
+                "consumedAt": {
+                  "column": "consumed_at"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "expiresAt": {
+                  "column": "expires_at"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "intent": {
+                  "column": "intent"
+                },
+                "linkingUserId": {
+                  "column": "linking_user_id"
+                },
+                "nonce": {
+                  "column": "nonce"
+                },
+                "pkceVerifier": {
+                  "column": "pkce_verifier"
+                },
+                "provider": {
+                  "column": "provider"
+                },
+                "redirectUri": {
+                  "column": "redirect_uri"
+                },
+                "state": {
+                  "column": "state"
+                }
+              },
+              "namespaceId": "public",
+              "table": "oauth_states"
+            }
+          },
           "PasswordCredential": {
             "fields": {
               "authIdentityId": {
@@ -919,6 +1124,21 @@
                 },
                 "to": {
                   "model": "EmailVerificationChallenge",
+                  "namespace": "public"
+                }
+              },
+              "oauthStates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "linkingUserId"
+                  ]
+                },
+                "to": {
+                  "model": "OAuthState",
                   "namespace": "public"
                 }
               },
@@ -1466,6 +1686,159 @@
               },
               "uniques": []
             },
+            "oauth_states": {
+              "checks": [
+                {
+                  "expression": "\"client_type\" IN ('WEB', 'IOS', 'ANDROID', 'OTHER')",
+                  "name": "oauth_states_client_type_check_a9640be8",
+                  "prefix": "oauth_states_client_type_check"
+                },
+                {
+                  "expression": "\"intent\" IN ('LOGIN', 'LINK')",
+                  "name": "oauth_states_intent_check_3c7e161e",
+                  "prefix": "oauth_states_intent_check"
+                },
+                {
+                  "expression": "\"provider\" IN ('GOOGLE', 'GITHUB')",
+                  "name": "oauth_states_provider_check_5918ff78",
+                  "prefix": "oauth_states_provider_check"
+                }
+              ],
+              "columns": {
+                "client_type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "SessionClientType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "consumed_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "expires_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "intent": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OAuthIntent",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "linking_user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "nonce": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "pkce_verifier": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "provider": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OAuthProviderType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "redirect_uri": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "state": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "linking_user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "oauth_states"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "linking_user_id"
+                  ],
+                  "name": "oauth_states_linking_user_id_idx_db1e27f9",
+                  "prefix": "oauth_states_linking_user_id_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "state"
+                  ]
+                }
+              ]
+            },
             "password_credential": {
               "columns": {
                 "auth_identity_id": {
@@ -1856,6 +2229,20 @@
                 "REGISTRATION"
               ]
             },
+            "OAuthIntent": {
+              "kind": "valueSet",
+              "values": [
+                "LOGIN",
+                "LINK"
+              ]
+            },
+            "OAuthProviderType": {
+              "kind": "valueSet",
+              "values": [
+                "GOOGLE",
+                "GITHUB"
+              ]
+            },
             "SessionClientType": {
               "kind": "valueSet",
               "values": [
@@ -1898,10 +2285,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "ab1e5b08e1e11fbe4bd4f8c5c1f13b49cba66530f023ce6bbbfe947ec6cc94f2"
+    "storageHash": "7d0127ee0a8ee76d950647a65dc71641f924b48f573369e428f2c2bfcbc98c3d"
   },
   "execution": {
-    "executionHash": "3ffca77778a03d11510410a0224523b705f2c533727ded80eb8f58c47c132550",
+    "executionHash": "2731def475b141c678f24fd89a956c7b660e35a8fd42de20a53d8b88ca81b114",
     "mutations": {
       "defaults": [
         {
@@ -1979,6 +2366,17 @@
           "ref": {
             "entry": "email_verification_challenges",
             "field": "updated_at",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "oauth_states",
+            "field": "id",
             "namespace": "public"
           }
         },

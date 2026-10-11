@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { FieldOutputTypes } from '../prisma/contract.d';
+import { TransactionClient } from '../prisma/db';
 import {
   isPostgresError,
   POSTGRES_UNIQUE_VIOLATION,
@@ -38,7 +39,41 @@ const EMAIL_SELECT = [
 @Injectable()
 export class PrismaUserRepository implements UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
+  async createWithPrimaryEmail(
+    input: NewUserWithEmail,
+    tx?: TransactionClient,
+  ): Promise<UserProfile> {
+    const { displayEmail, normalizedEmail } = normalizeEmail(input.email);
+    const create = (client: TransactionClient | PrismaService['db']) =>
+      client.orm.public.User.include('email').create({
+        displayName: displayEmail,
+        email: (email) =>
+          email.create([
+            {
+              email: displayEmail,
+              normalizedEmail,
+              isPrimary: true,
+              verifiedAt: new Date(),
+            },
+          ]),
+      });
 
+    try {
+      const created = tx
+        ? await create(tx)
+        : await this.prisma.db.transaction(create);
+      return mapToUserProfile(created);
+    } catch (error) {
+      if (
+        isPostgresError(error) &&
+        ('sqlState' in error ? error.sqlState : error.cause.sqlState) ===
+          POSTGRES_UNIQUE_VIOLATION
+      ) {
+        throw new UserEmailAlreadyExistsError();
+      }
+      throw error;
+    }
+  }
   async createWithPrimaryEmailAndPassword(
     input: NewUserWithEmail & { passwordHash: string },
   ): Promise<UserProfile> {

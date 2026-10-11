@@ -17,6 +17,11 @@ export interface AppConfig {
   readonly jwtKid: string;
   readonly jwtPrivateKey: string;
   readonly jwtPublicKey: string;
+  readonly googleClientId: string;
+  readonly googleClientSecret: string;
+  readonly githubClientId: string;
+  readonly githubClientSecret: string;
+  readonly publicBaseUrl: string;
 }
 
 export const createAppConfig = (environment: ValidatedEnvironment): AppConfig =>
@@ -31,4 +36,9 @@ export const createAppConfig = (environment: ValidatedEnvironment): AppConfig =>
     jwtKid: environment.JWT_KID,
     jwtPrivateKey: environment.JWT_PRIVATE_KEY,
     jwtPublicKey: environment.JWT_PUBLIC_KEY,
+    googleClientId: environment.GOOGLE_CLIENT_ID,
+    googleClientSecret: environment.GOOGLE_CLIENT_SECRET,
+    githubClientId: environment.GITHUB_CLIENT_ID,
+    githubClientSecret: environment.GITHUB_CLIENT_SECRET,
+    publicBaseUrl: environment.PUBLIC_BASE_URL,
   });

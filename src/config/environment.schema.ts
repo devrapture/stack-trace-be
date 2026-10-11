@@ -26,6 +26,11 @@ export interface ValidatedEnvironment {
   readonly JWT_KID: string;
   readonly JWT_PRIVATE_KEY: string;
   readonly JWT_PUBLIC_KEY: string;
+  readonly GOOGLE_CLIENT_ID: string;
+  readonly GOOGLE_CLIENT_SECRET: string;
+  readonly GITHUB_CLIENT_ID: string;
+  readonly GITHUB_CLIENT_SECRET: string;
+  readonly PUBLIC_BASE_URL: string;
 }
 
 export const environmentSchema = Joi.object<ValidatedEnvironment>({
@@ -57,4 +62,16 @@ export const environmentSchema = Joi.object<ValidatedEnvironment>({
   JWT_KID: Joi.string().trim().required(),
   JWT_PRIVATE_KEY: Joi.string().trim().required(),
   JWT_PUBLIC_KEY: Joi.string().trim().required(),
+  GOOGLE_CLIENT_ID: Joi.string().trim().required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().trim().required(),
+  GITHUB_CLIENT_ID: Joi.string().trim().required(),
+  GITHUB_CLIENT_SECRET: Joi.string().trim().required(),
+  PUBLIC_BASE_URL: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string()
+      .trim()
+      .uri({ scheme: ['https'] })
+      .required(),
+    otherwise: Joi.string().trim().uri().default('http://localhost:3000'),
+  }),
 });

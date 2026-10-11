@@ -45,6 +45,21 @@ const readValidatedEnvironment = (
   JWT_PUBLIC_KEY: config.getOrThrow('JWT_PUBLIC_KEY', {
     infer: true,
   }),
+  GITHUB_CLIENT_ID: config.getOrThrow('GITHUB_CLIENT_ID', {
+    infer: true,
+  }),
+  GITHUB_CLIENT_SECRET: config.getOrThrow('GITHUB_CLIENT_SECRET', {
+    infer: true,
+  }),
+  GOOGLE_CLIENT_ID: config.getOrThrow('GOOGLE_CLIENT_ID', {
+    infer: true,
+  }),
+  GOOGLE_CLIENT_SECRET: config.getOrThrow('GOOGLE_CLIENT_SECRET', {
+    infer: true,
+  }),
+  PUBLIC_BASE_URL: config.getOrThrow('PUBLIC_BASE_URL', {
+    infer: true,
+  }),
 });
 
 const appConfigProvider: FactoryProvider = {
