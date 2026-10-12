@@ -21,12 +21,18 @@ export class GoogleOauthProvider implements OAuthProviderAdapter {
     private readonly config: AppConfig,
   ) {}
   private async getConfig(): Promise<client.Configuration> {
-    this.configPromise ??= client.discovery(
+    const promise = (this.configPromise ??= client.discovery(
       new URL(GOOGLE_ISSUER),
       this.config.googleClientId,
       this.config.googleClientSecret,
-    );
-    return this.configPromise;
+    ));
+
+    try {
+      return await promise;
+    } catch (error) {
+      if (this.configPromise === promise) this.configPromise = undefined;
+      throw error;
+    }
   }
 
   async createAuthorizationRequest(
