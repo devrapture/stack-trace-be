@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Temporal } from 'temporal-polyfill/full';
 import type { FieldOutputTypes } from '../prisma/contract.d';
 import { TransactionClient } from '../prisma/db';
 import {
@@ -47,13 +48,14 @@ export class PrismaUserRepository implements UsersRepository {
     const create = (client: TransactionClient | PrismaService['db']) =>
       client.orm.public.User.include('email').create({
         displayName: displayEmail,
+        status: 'ACTIVE',
         email: (email) =>
           email.create([
             {
               email: displayEmail,
               normalizedEmail,
               isPrimary: true,
-              verifiedAt: new Date(),
+              verifiedAt: Temporal.Now.instant(),
             },
           ]),
       });

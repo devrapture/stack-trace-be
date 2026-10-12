@@ -66,6 +66,7 @@ export class GoogleOauthProvider implements OAuthProviderAdapter {
       config,
       input.callbackUrl,
       {
+        expectedState: input.expectedState,
         ...(input.pkceVerifier !== undefined
           ? { pkceCodeVerifier: input.pkceVerifier }
           : {}),
