@@ -48,7 +48,7 @@ export class OAuthLoginService {
   async start(
     provider: OAuthProviderName,
     clientType: SessionClientTypeName,
-  ): Promise<{ authorizationUrl: string }> {
+  ): Promise<{ authorizationUrl: string; state: string }> {
     const adapter = this.adapterFor(provider);
     const redirectUri = this.redirectUriFor(provider);
     const request = await adapter.createAuthorizationRequest(redirectUri);
@@ -65,6 +65,7 @@ export class OAuthLoginService {
 
     return {
       authorizationUrl: request.authorizationUrl,
+      state: request.state,
     };
   }
 

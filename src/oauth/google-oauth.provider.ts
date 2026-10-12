@@ -91,7 +91,7 @@ export class GoogleOauthProvider implements OAuthProviderAdapter {
 
     if (!claims.email_verified || typeof claims.email !== 'string')
       throw new AppError(
-        ErrorCode.EMAIL_NOT_VERIFIED,
+        ErrorCode.OAUTH_EMAIL_NOT_VERIFIED,
         'Google did not report a verified email for this account. verify your email with Google and try again',
         HttpStatus.BAD_REQUEST,
       );

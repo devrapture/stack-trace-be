@@ -1,6 +1,16 @@
-import { Controller, Get, Inject, Query, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Inject,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { type FastifyReply, type FastifyRequest } from 'fastify';
+import { AppError } from '../common/error/app-error.js';
+import { ErrorCode } from '../common/error/error-codes.js';
 import {
   respondWithIssuedSession,
   SessionResponseBody,
@@ -8,6 +18,13 @@ import {
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { StartOAuthDto } from './dto/start-oauth.dto.js';
 import { OAuthLoginService } from './oauth-login.service.js';
+import {
+  clearOAuthStateCookie,
+  oauthStateCookieName,
+  oauthStateMatchesCookie,
+  setOAuthStateCookie,
+} from './oauth-state-binding.js';
+import type { OAuthProviderName } from './oauth-state.repository.js';
 import { Public } from '../sessions/public.decorator.js';
 
 @Public()
@@ -53,28 +70,49 @@ export class OauthController {
     return this.callback('GITHUB', request, reply);
   }
   private async start(
-    provider: 'GOOGLE' | 'GITHUB',
+    provider: OAuthProviderName,
     query: StartOAuthDto,
     reply: FastifyReply,
   ): Promise<{ authorizationUrl: string } | undefined> {
-    const { authorizationUrl } = await this.oauthLoginService.start(
+    if (query.clientType !== 'WEB')
+      throw new AppError(
+        ErrorCode.BAD_REQUEST,
+        'OAuth login currently supports WEB clients only.',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    const { authorizationUrl, state } = await this.oauthLoginService.start(
       provider,
       query.clientType,
     );
-    if (query.clientType === 'WEB') {
-      reply.redirect(authorizationUrl, 302);
-      return undefined;
-    }
+    setOAuthStateCookie(
+      reply,
+      provider,
+      state,
+      this.config.environment === 'production',
+    );
+    reply.redirect(authorizationUrl, 302);
 
-    return { authorizationUrl };
+    return undefined;
   }
 
   private async callback(
-    provider: 'GOOGLE' | 'GITHUB',
+    provider: OAuthProviderName,
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<SessionResponseBody> {
     const callbackUrl = new URL(request.url, this.config.publicBaseUrl);
+    const state = callbackUrl.searchParams.get('state');
+    const stateCookie = request.cookies?.[oauthStateCookieName(provider)];
+    clearOAuthStateCookie(reply, provider);
+
+    if (!state || !oauthStateMatchesCookie(state, stateCookie))
+      throw new AppError(
+        ErrorCode.OAUTH_STATE_INVALID,
+        'This sign-in attempt is invalid or has expired. Please try again.',
+        HttpStatus.BAD_REQUEST,
+      );
+
     const session = await this.oauthLoginService.handleCallback(
       provider,
       callbackUrl,
