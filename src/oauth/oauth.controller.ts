@@ -104,7 +104,6 @@ export class OauthController {
     const callbackUrl = new URL(request.url, this.config.publicBaseUrl);
     const state = callbackUrl.searchParams.get('state');
     const stateCookie = request.cookies?.[oauthStateCookieName(provider)];
-    clearOAuthStateCookie(reply, provider);
 
     if (!state || !oauthStateMatchesCookie(state, stateCookie))
       throw new AppError(
@@ -112,6 +111,8 @@ export class OauthController {
         'This sign-in attempt is invalid or has expired. Please try again.',
         HttpStatus.BAD_REQUEST,
       );
+
+    clearOAuthStateCookie(reply, provider);
 
     const session = await this.oauthLoginService.handleCallback(
       provider,

@@ -86,10 +86,55 @@ describe('OauthController state binding', () => {
       httpStatus: 400,
     });
     expect(handleCallback).not.toHaveBeenCalled();
-    expect(reply.clearCookie).toHaveBeenCalledWith(
-      oauthStateCookieName('GOOGLE'),
-      expect.any(Object),
+    expect(reply.clearCookie).not.toHaveBeenCalled();
+  });
+
+  it('does not clear a newer sign-in cookie when a stale callback arrives', async () => {
+    const start = vi
+      .fn()
+      .mockResolvedValueOnce({
+        authorizationUrl: 'https://accounts.google.com/authorize',
+        state: 'old-state',
+      })
+      .mockResolvedValueOnce({
+        authorizationUrl: 'https://accounts.google.com/authorize',
+        state: 'new-state',
+      });
+    const handleCallback = vi.fn();
+    const controller = new OauthController(config, {
+      start,
+      handleCallback,
+    } as unknown as OAuthLoginService);
+    const firstReply = createReply();
+    const secondReply = createReply();
+    await controller.googleStart(
+      { clientType: 'WEB' },
+      firstReply as unknown as FastifyReply,
     );
+    await controller.googleStart(
+      { clientType: 'WEB' },
+      secondReply as unknown as FastifyReply,
+    );
+    const newerStateCookie = secondReply.setCookie.mock.calls[0]?.[1] as string;
+    const callbackReply = createReply();
+    const staleRequest = {
+      cookies: {
+        [oauthStateCookieName('GOOGLE')]: newerStateCookie,
+      },
+      url: '/api/v1/oauth/google/callback?state=old-state&code=code',
+    } as unknown as FastifyRequest;
+
+    await expect(
+      controller.googleCallback(
+        staleRequest,
+        callbackReply as unknown as FastifyReply,
+      ),
+    ).rejects.toMatchObject({
+      code: 'oauth_state_invalid',
+      httpStatus: 400,
+    });
+    expect(handleCallback).not.toHaveBeenCalled();
+    expect(callbackReply.clearCookie).not.toHaveBeenCalled();
   });
 
   it('accepts a callback bound to the initiating browser and clears the cookie', async () => {
