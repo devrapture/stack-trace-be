@@ -8,7 +8,9 @@ import {
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { StartOAuthDto } from './dto/start-oauth.dto.js';
 import { OAuthLoginService } from './oauth-login.service.js';
+import { Public } from '../sessions/public.decorator.js';
 
+@Public()
 @Controller('oauth')
 export class OauthController {
   constructor(

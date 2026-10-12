@@ -115,7 +115,7 @@ export class OAuthLoginService {
 
   private redirectUriFor(provider: OAuthProviderName): string {
     const base = this.config.publicBaseUrl;
-    return `${base}/api/v1/auth/oauth/${provider.toLowerCase()}/callback`;
+    return `${base}/api/v1/oauth/${provider.toLowerCase()}/callback`;
   }
 
   private async resolveOrCreateUser(

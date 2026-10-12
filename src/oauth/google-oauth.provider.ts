@@ -42,7 +42,7 @@ export class GoogleOauthProvider implements OAuthProviderAdapter {
 
     const authorizationUrl = client
       .buildAuthorizationUrl(config, {
-        redirectUri: redirectUri,
+        redirect_uri: redirectUri,
         scope: 'openid email',
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',

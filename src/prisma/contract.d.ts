@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'7d0127ee0a8ee76d950647a65dc71641f924b48f573369e428f2c2bfcbc98c3d'>;
+  StorageHashBase<'cacac59fdde77dd582d2b7cf6cf812aaeea6dc12ca41054ceadf02c7dc60c67b'>;
 export type ExecutionHash =
   ExecutionHashBase<'2731def475b141c678f24fd89a956c7b660e35a8fd42de20a53d8b88ca81b114'>;
 export type ProfileHash =
@@ -298,7 +298,7 @@ export type FieldOutputTypes = {
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly intent: 'LOGIN' | 'LINK';
-      readonly linkingUserId: CodecTypes['pg/uuid@1']['output'];
+      readonly linkingUserId: CodecTypes['pg/uuid@1']['output'] | null;
       readonly nonce: CodecTypes['pg/text@1']['output'] | null;
       readonly pkceVerifier: CodecTypes['pg/text@1']['output'] | null;
       readonly provider: 'GOOGLE' | 'GITHUB';
@@ -398,7 +398,7 @@ export type FieldInputTypes = {
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly intent: 'LOGIN' | 'LINK';
-      readonly linkingUserId: CodecTypes['pg/uuid@1']['input'];
+      readonly linkingUserId: CodecTypes['pg/uuid@1']['input'] | null;
       readonly nonce: CodecTypes['pg/text@1']['input'] | null;
       readonly pkceVerifier: CodecTypes['pg/text@1']['input'] | null;
       readonly provider: 'GOOGLE' | 'GITHUB';
@@ -498,7 +498,7 @@ export type StorageColumnTypes = {
       readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly intent: 'LOGIN' | 'LINK';
-      readonly linking_user_id: CodecTypes['pg/uuid@1']['output'];
+      readonly linking_user_id: CodecTypes['pg/uuid@1']['output'] | null;
       readonly nonce: CodecTypes['pg/text@1']['output'] | null;
       readonly pkce_verifier: CodecTypes['pg/text@1']['output'] | null;
       readonly provider: 'GOOGLE' | 'GITHUB';
@@ -598,7 +598,7 @@ export type StorageColumnInputTypes = {
       readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly intent: 'LOGIN' | 'LINK';
-      readonly linking_user_id: CodecTypes['pg/uuid@1']['input'];
+      readonly linking_user_id: CodecTypes['pg/uuid@1']['input'] | null;
       readonly nonce: CodecTypes['pg/text@1']['input'] | null;
       readonly pkce_verifier: CodecTypes['pg/text@1']['input'] | null;
       readonly provider: 'GOOGLE' | 'GITHUB';
@@ -705,14 +705,14 @@ export namespace Models {
     expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/uuid@1']['output'];
     intent: 'LOGIN' | 'LINK';
-    linkingUserId: CodecTypes['pg/uuid@1']['output'];
+    linkingUserId: CodecTypes['pg/uuid@1']['output'] | null;
     nonce: CodecTypes['pg/text@1']['output'] | null;
     pkceVerifier: CodecTypes['pg/text@1']['output'] | null;
     provider: 'GOOGLE' | 'GITHUB';
     redirectUri: CodecTypes['pg/text@1']['output'];
     state: CodecTypes['pg/text@1']['output'];
-    linkingUse: public_User;
-    readonly [RelationKeys]?: 'linkingUse';
+    linkingUser: public_User | null;
+    readonly [RelationKeys]?: 'linkingUser';
   };
   export type public_PasswordCredential = {
     authIdentityId: CodecTypes['pg/uuid@1']['output'];
@@ -1090,7 +1090,7 @@ type ContractBase = Omit<
                 readonly linking_user_id: {
                   readonly nativeType: 'uuid';
                   readonly codecId: 'pg/uuid@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
                 };
                 readonly nonce: {
                   readonly nativeType: 'text';
@@ -1796,7 +1796,7 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly linkingUserId: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
               };
               readonly nonce: {
@@ -1821,10 +1821,10 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
-              readonly linkingUse: {
+              readonly linkingUser: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly on: {
                   readonly localFields: readonly ['linkingUserId'];
                   readonly targetFields: readonly ['id'];

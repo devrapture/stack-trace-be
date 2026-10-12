@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Temporal } from 'temporal-polyfill/full';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   CreateOAuthStateInput,
@@ -23,7 +24,9 @@ export class PrismaOAuthStateRepository implements OAuthStateRepository {
       redirectUri: input.redirectUri,
       clientType: input.clientType,
       linkingUserId: input.linkingUserId,
-      expiresAt: input.expiresAt,
+      expiresAt: Temporal.Instant.fromEpochMilliseconds(
+        input.expiresAt.getTime(),
+      ),
     });
   }
 
@@ -32,7 +35,7 @@ export class PrismaOAuthStateRepository implements OAuthStateRepository {
       state,
       consumedAt: null,
     }).updateAndCount({
-      consumedAt: new Date(),
+      consumedAt: Temporal.Now.instant(),
     });
 
     if (count === 0) return null;
@@ -51,8 +54,10 @@ export class PrismaOAuthStateRepository implements OAuthStateRepository {
           redirectUri: row.redirectUri,
           clientType: row.clientType,
           linkingUserId: row.linkingUserId,
-          expiresAt: row.expiresAt,
-          consumedAt: row.consumedAt,
+          expiresAt: new Date(row.expiresAt.epochMilliseconds),
+          consumedAt: row.consumedAt
+            ? new Date(row.consumedAt.epochMilliseconds)
+            : null,
         }
       : null;
   }

@@ -31,9 +31,10 @@ export type OAuthStateRecord = Readonly<
     | 'redirectUri'
     | 'clientType'
     | 'linkingUserId'
-    | 'expiresAt'
-    | 'consumedAt'
-  >
+  > & {
+    expiresAt: Date;
+    consumedAt: Date | null;
+  }
 >;
 
 export interface OAuthStateRepository {

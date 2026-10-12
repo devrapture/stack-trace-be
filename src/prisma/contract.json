@@ -664,7 +664,7 @@
                 }
               },
               "linkingUserId": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/uuid@1",
                   "kind": "scalar"
@@ -713,9 +713,9 @@
               }
             },
             "relations": {
-              "linkingUse": {
+              "linkingUser": {
                 "cardinality": "N:1",
-                "nullable": false,
+                "nullable": true,
                 "on": {
                   "localFields": [
                     "linkingUserId"
@@ -1763,7 +1763,7 @@
                 "linking_user_id": {
                   "codecId": "pg/uuid@1",
                   "nativeType": "uuid",
-                  "nullable": false
+                  "nullable": true
                 },
                 "nonce": {
                   "codecId": "pg/text@1",
@@ -2285,7 +2285,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "7d0127ee0a8ee76d950647a65dc71641f924b48f573369e428f2c2bfcbc98c3d"
+    "storageHash": "cacac59fdde77dd582d2b7cf6cf812aaeea6dc12ca41054ceadf02c7dc60c67b"
   },
   "execution": {
     "executionHash": "2731def475b141c678f24fd89a956c7b660e35a8fd42de20a53d8b88ca81b114",

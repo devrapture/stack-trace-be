@@ -186,13 +186,13 @@ model OAuthState {
   pkceVerifier  String?           @map("pkce_verifier")
   redirectUri   String            @map("redirect_uri")
   clientType    SessionClientType @map("client_type")
-  linkingUserId Uuid              @map("linking_user_id")
+  linkingUserId Uuid?             @map("linking_user_id")
   expiresAt     Timestamptz(3)    @map("expires_at")
   consumedAt    Timestamptz(3)?   @map("consumed_at")
 
   createdAt     Timestamptz(3)    @map("created_at") @default(now())
 
-  linkingUser    User              @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
+  linkingUser    User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
 
   @@map("oauth_states")
 }

@@ -9,6 +9,7 @@ import { OAUTH_STATE_REPOSITORY } from './oauth-state.repository.js';
 import { OauthController } from './oauth.controller.js';
 import { PrismaOAuthIdentitiesRepository } from './prisma-oauth-identities.repository.js';
 import { PrismaOAuthStateRepository } from './prisma-oauth-state.repository.js';
+import { OAuthLoginService } from './oauth-login.service.js';
 
 @Module({
   imports: [PlatformConfigModule, UsersModule, SessionsModule],
@@ -16,6 +17,7 @@ import { PrismaOAuthStateRepository } from './prisma-oauth-state.repository.js';
   providers: [
     GoogleOauthProvider,
     GithubOauthProvider,
+    OAuthLoginService,
     {
       provide: OAUTH_STATE_REPOSITORY,
       useClass: PrismaOAuthStateRepository,
