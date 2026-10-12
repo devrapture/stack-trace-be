@@ -94,9 +94,12 @@ export class OAuthLoginService {
         HttpStatus.BAD_REQUEST,
       );
 
+    const providerCallbackUrl = new URL(stateRecord.redirectUri);
+    providerCallbackUrl.search = callbackUrl.search;
+
     const adapter = this.adapterFor(provider);
     const profile = await adapter.exchangeAndVerify({
-      callbackUrl,
+      callbackUrl: providerCallbackUrl,
       expectedState: stateParam,
       ...(stateRecord.pkceVerifier !== null
         ? { pkceVerifier: stateRecord.pkceVerifier }
@@ -115,7 +118,7 @@ export class OAuthLoginService {
   }
 
   private redirectUriFor(provider: OAuthProviderName): string {
-    const base = this.config.publicBaseUrl;
+    const base = this.config.publicBaseUrl.replace(/\/+$/, '');
     return `${base}/api/v1/oauth/${provider.toLowerCase()}/callback`;
   }
 
