@@ -5,6 +5,7 @@ import { UsersModule } from '../users/users.module.js';
 import { GithubOauthProvider } from './github-oauth.provider.js';
 import { GoogleOauthProvider } from './google-oauth.provider.js';
 import { OAUTH_IDENTITIES_REPOSITORY } from './oauth-identities.repository.js';
+import { OAuthStateCleanupService } from './oauth-state-cleanup.service.js';
 import { OAUTH_STATE_REPOSITORY } from './oauth-state.repository.js';
 import { OauthController } from './oauth.controller.js';
 import { PrismaOAuthIdentitiesRepository } from './prisma-oauth-identities.repository.js';
@@ -18,6 +19,7 @@ import { OAuthLoginService } from './oauth-login.service.js';
     GoogleOauthProvider,
     GithubOauthProvider,
     OAuthLoginService,
+    OAuthStateCleanupService,
     {
       provide: OAUTH_STATE_REPOSITORY,
       useClass: PrismaOAuthStateRepository,

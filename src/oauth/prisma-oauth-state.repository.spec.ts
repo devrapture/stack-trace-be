@@ -78,4 +78,30 @@ describe('PrismaOAuthStateRepository', () => {
     expect(result?.expiresAt).toEqual(new Date(EXPIRES_AT.epochMilliseconds));
     expect(result?.consumedAt).toEqual(new Date(CONSUMED_AT.epochMilliseconds));
   });
+
+  it('deletes states that expired before the cutoff', async () => {
+    const expiresAtLt = vi.fn();
+    const deleteAndCount = vi.fn().mockResolvedValue(3);
+    const where = vi.fn().mockImplementation((predicate) => {
+      predicate({ expiresAt: { lt: expiresAtLt } });
+      return { deleteAndCount };
+    });
+    const prisma = {
+      db: {
+        orm: {
+          public: {
+            OAuthState: { where },
+          },
+        },
+      },
+    } as unknown as PrismaService;
+    const repository = new PrismaOAuthStateRepository(prisma);
+
+    await expect(
+      repository.deleteExpired(new Date(EXPIRES_AT.epochMilliseconds)),
+    ).resolves.toBe(3);
+
+    expect(expiresAtLt).toHaveBeenCalledWith(EXPIRES_AT);
+    expect(deleteAndCount).toHaveBeenCalledOnce();
+  });
 });

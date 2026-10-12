@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'cacac59fdde77dd582d2b7cf6cf812aaeea6dc12ca41054ceadf02c7dc60c67b'>;
+  StorageHashBase<'a2503eabe57d1bcfae3d6eef9a3d68e1f854389b424f379740e62262612cd40b'>;
 export type ExecutionHash =
   ExecutionHashBase<'2731def475b141c678f24fd89a956c7b660e35a8fd42de20a53d8b88ca81b114'>;
 export type ProfileHash =
@@ -1121,6 +1121,12 @@ type ContractBase = Omit<
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [{ readonly columns: readonly ['state'] }];
               indexes: readonly [
+                {
+                  readonly name: 'oauth_states_expires_at_idx_35365ada';
+                  readonly prefix: 'oauth_states_expires_at_idx';
+                  readonly columns: readonly ['expires_at'];
+                  readonly unique: false;
+                },
                 {
                   readonly name: 'oauth_states_linking_user_id_idx_db1e27f9';
                   readonly prefix: 'oauth_states_linking_user_id_idx';

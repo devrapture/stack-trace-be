@@ -40,4 +40,5 @@ export type OAuthStateRecord = Readonly<
 export interface OAuthStateRepository {
   create(input: CreateOAuthStateInput): Promise<void>;
   consume(state: string): Promise<OAuthStateRecord | null>;
+  deleteExpired(before: Date): Promise<number>;
 }

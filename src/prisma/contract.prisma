@@ -194,5 +194,6 @@ model OAuthState {
 
   linkingUser    User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
 
+  @@index([expiresAt])
   @@map("oauth_states")
 }

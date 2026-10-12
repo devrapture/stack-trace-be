@@ -61,4 +61,11 @@ export class PrismaOAuthStateRepository implements OAuthStateRepository {
         }
       : null;
   }
+
+  async deleteExpired(before: Date): Promise<number> {
+    const cutoff = Temporal.Instant.fromEpochMilliseconds(before.getTime());
+    return this.db.OAuthState.where((oauthState) =>
+      oauthState.expiresAt.lt(cutoff),
+    ).deleteAndCount();
+  }
 }
