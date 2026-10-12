@@ -1,0 +1,45 @@
+[
+  {
+    "id": "alterNullability.dropNotNull.oauth_states.linking_user_id",
+    "label": "Drop NOT NULL on \"oauth_states\".\"linking_user_id\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "linking_user_id",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"linking_user_id\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "oauth_states",
+          "linking_user_id"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"linking_user_id\"",
+        "sql": "ALTER TABLE \"public\".\"oauth_states\" ALTER COLUMN \"linking_user_id\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"linking_user_id\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "oauth_states",
+          "linking_user_id",
+          "YES"
+        ]
+      }
+    ]
+  }
+]

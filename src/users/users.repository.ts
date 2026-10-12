@@ -1,3 +1,4 @@
+import { TransactionClient } from '../prisma/db.js';
 import type { NewUserWithEmail, UserProfile } from './user.model.js';
 
 export const USERS_REPOSITORY = Symbol('USERS_REPOSITORY');
@@ -11,6 +12,10 @@ export class UserEmailAlreadyExistsError extends Error {
 }
 
 export interface UsersRepository {
+  createWithPrimaryEmail(
+    input: NewUserWithEmail,
+    tx?: TransactionClient,
+  ): Promise<UserProfile>;
   createWithPrimaryEmailAndPassword(
     input: NewUserWithEmail & { passwordHash: string },
   ): Promise<UserProfile>;

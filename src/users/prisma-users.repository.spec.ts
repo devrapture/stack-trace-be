@@ -1,7 +1,52 @@
+import { Temporal } from 'temporal-polyfill/full';
 import { vi } from 'vitest';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { PrismaUserRepository } from './prisma-users.repository.js';
 import { UserEmailAlreadyExistsError } from './users.repository.js';
+
+const NOW = Temporal.Instant.from('2026-10-12T06:45:00Z');
+
+describe('PrismaUserRepository.createWithPrimaryEmail', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates an active user with a Temporal verified-email timestamp', async () => {
+    vi.spyOn(Temporal.Now, 'instant').mockReturnValue(NOW);
+    const createEmail = vi.fn();
+    const createError = new Error('stop after capturing input');
+    const createUser = vi.fn().mockImplementation((input) => {
+      input.email({ create: createEmail });
+      throw createError;
+    });
+    const tx = {
+      orm: {
+        public: {
+          User: {
+            include: vi.fn().mockReturnValue({ create: createUser }),
+          },
+        },
+      },
+    };
+    const repository = new PrismaUserRepository({} as PrismaService);
+
+    await expect(
+      repository.createWithPrimaryEmail(
+        { email: 'Person@Example.com' },
+        tx as never,
+      ),
+    ).rejects.toBe(createError);
+
+    expect(createUser).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'ACTIVE' }),
+    );
+    expect(createEmail).toHaveBeenCalledWith([
+      expect.objectContaining({
+        verifiedAt: NOW,
+      }),
+    ]);
+  });
+});
 
 describe('PrismaUserRepository.createWithPrimaryEmailAndPassword', () => {
   async function createWithError(error: unknown): Promise<void> {

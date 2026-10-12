@@ -37,23 +37,34 @@ enum SessionRevokedReason {
   ADMIN
 }
 
-model User {
-  id                          Uuid                         @id @default(uuid())
-  publicId                    Uuid                         @unique @default(uuid())
-  displayName                 String?                      @map("display_name")
-  avatarUrl                   String?                      @map("avatar_url")
-  role                        UserRole                     @default(USER)
-  status                      UserStatus                   @default(PENDING)
-  lastLoginAt                 Timestamptz(3)?              @map("last_login_at")
-  passwordRecoveryNoticeSentAt Timestamptz(3)?            @map("password_recovery_notice_sent_at")
-  createdAt                   Timestamptz                  @map("created_at") @default(now())
-  updatedAt                   temporal.updatedAt()         @map("updated_at")
+enum OAuthProviderType {
+  GOOGLE
+  GITHUB
+}
 
-  email                       UserEmail[]
-  authIdentities              AuthIdentity[]
-  authSessions                AuthSession[]
-  emailVerificationChallenges EmailVerificationChallenge[]
-  passwordResetChallenge      PasswordResetChallenge[]
+enum OAuthIntent {
+  LOGIN
+  LINK
+}
+
+model User {
+  id                           Uuid                         @id @default(uuid())
+  publicId                     Uuid                         @unique @default(uuid())
+  displayName                  String?                      @map("display_name")
+  avatarUrl                    String?                      @map("avatar_url")
+  role                         UserRole                     @default(USER)
+  status                       UserStatus                   @default(PENDING)
+  lastLoginAt                  Timestamptz(3)?              @map("last_login_at")
+  passwordRecoveryNoticeSentAt Timestamptz(3)?              @map("password_recovery_notice_sent_at")
+  createdAt                    Timestamptz                  @map("created_at") @default(now())
+  updatedAt                    temporal.updatedAt()         @map("updated_at")
+
+  email                        UserEmail[]
+  authIdentities               AuthIdentity[]
+  authSessions                 AuthSession[]
+  emailVerificationChallenges  EmailVerificationChallenge[]
+  passwordResetChallenge       PasswordResetChallenge[]
+  oauthStates                  OAuthState[]
 
   @@map("users")
 }
@@ -164,4 +175,25 @@ model PasswordResetChallenge {
 
   @@index([userId])
   @@map("password_reset_challenge")
+}
+
+model OAuthState {
+  id            Uuid              @id @default(uuid())
+  provider      OAuthProviderType
+  intent        OAuthIntent
+  state         String            @unique
+  nonce         String?
+  pkceVerifier  String?           @map("pkce_verifier")
+  redirectUri   String            @map("redirect_uri")
+  clientType    SessionClientType @map("client_type")
+  linkingUserId Uuid?             @map("linking_user_id")
+  expiresAt     Timestamptz(3)    @map("expires_at")
+  consumedAt    Timestamptz(3)?   @map("consumed_at")
+
+  createdAt     Timestamptz(3)    @map("created_at") @default(now())
+
+  linkingUser    User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("oauth_states")
 }

@@ -17,6 +17,10 @@ export const ErrorCode = {
   EMAIL_NOT_VERIFIED: 'email_not_verified',
   NO_PASSWORD_IDENTITY: 'no_password_identity',
   PASSWORD_REUSE: 'password_reuse',
+  OAUTH_PROVIDER_ERROR: 'oauth_provider_error',
+  OAUTH_EMAIL_NOT_VERIFIED: 'oauth_email_not_verified',
+  OAUTH_STATE_INVALID: 'oauth_state_invalid',
+  GITHUB_EMAIL_UNAVAILABLE: 'github_email_unavailable',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
