@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'a2503eabe57d1bcfae3d6eef9a3d68e1f854389b424f379740e62262612cd40b'>;
+  StorageHashBase<'46b38c4dd2f6093a6028e0005969fdd6d1a536fc4b7fd609b4415815b32c24fb'>;
 export type ExecutionHash =
-  ExecutionHashBase<'2731def475b141c678f24fd89a956c7b660e35a8fd42de20a53d8b88ca81b114'>;
+  ExecutionHashBase<'391e52e07ffdb7f44b7e061fb02e0d6e0c52c260a86dcb277d2a73fb9aef3205'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -250,6 +250,21 @@ type DefaultLiteralValue<CodecId extends string, Encoded> = CodecId extends keyo
 
 export type FieldOutputTypes = {
   readonly public: {
+    readonly AuditLog: {
+      readonly actorUserId: CodecTypes['pg/uuid@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly eventType:
+        | 'PASSWORD_RESET'
+        | 'PASSWORD_CHANGED'
+        | 'PASSWORD_ADDED'
+        | 'PROVIDER_LINKED'
+        | 'PROVIDER_UNLINKED'
+        | 'ADMIN_ROLE_GRANTED'
+        | 'ADMIN_ROLE_REVOKED';
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly metadata: CodecTypes['pg/jsonb@1']['output'] | null;
+      readonly userId: CodecTypes['pg/uuid@1']['output'] | null;
+    };
     readonly AuthIdentity: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
@@ -332,7 +347,7 @@ export type FieldOutputTypes = {
       readonly passwordRecoveryNoticeSentAt:
         CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly publicId: CodecTypes['pg/uuid@1']['output'];
-      readonly role: 'USER' | 'ADMIN';
+      readonly role: 'PLAYER' | 'ADMIN';
       readonly status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -350,6 +365,21 @@ export type FieldOutputTypes = {
 };
 export type FieldInputTypes = {
   readonly public: {
+    readonly AuditLog: {
+      readonly actorUserId: CodecTypes['pg/uuid@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly eventType:
+        | 'PASSWORD_RESET'
+        | 'PASSWORD_CHANGED'
+        | 'PASSWORD_ADDED'
+        | 'PROVIDER_LINKED'
+        | 'PROVIDER_UNLINKED'
+        | 'ADMIN_ROLE_GRANTED'
+        | 'ADMIN_ROLE_REVOKED';
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly metadata: CodecTypes['pg/jsonb@1']['input'] | null;
+      readonly userId: CodecTypes['pg/uuid@1']['input'] | null;
+    };
     readonly AuthIdentity: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
@@ -432,7 +462,7 @@ export type FieldInputTypes = {
       readonly passwordRecoveryNoticeSentAt:
         CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly publicId: CodecTypes['pg/uuid@1']['input'];
-      readonly role: 'USER' | 'ADMIN';
+      readonly role: 'PLAYER' | 'ADMIN';
       readonly status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -450,6 +480,21 @@ export type FieldInputTypes = {
 };
 export type StorageColumnTypes = {
   readonly public: {
+    readonly audit_logs: {
+      readonly actor_user_id: CodecTypes['pg/uuid@1']['output'] | null;
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly event_type:
+        | 'PASSWORD_RESET'
+        | 'PASSWORD_CHANGED'
+        | 'PASSWORD_ADDED'
+        | 'PROVIDER_LINKED'
+        | 'PROVIDER_UNLINKED'
+        | 'ADMIN_ROLE_GRANTED'
+        | 'ADMIN_ROLE_REVOKED';
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly metadata: CodecTypes['pg/jsonb@1']['output'] | null;
+      readonly user_id: CodecTypes['pg/uuid@1']['output'] | null;
+    };
     readonly auth_identities: {
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
@@ -542,7 +587,7 @@ export type StorageColumnTypes = {
       readonly password_recovery_notice_sent_at:
         CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly publicId: CodecTypes['pg/uuid@1']['output'];
-      readonly role: 'USER' | 'ADMIN';
+      readonly role: 'PLAYER' | 'ADMIN';
       readonly status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
     };
@@ -550,6 +595,21 @@ export type StorageColumnTypes = {
 };
 export type StorageColumnInputTypes = {
   readonly public: {
+    readonly audit_logs: {
+      readonly actor_user_id: CodecTypes['pg/uuid@1']['input'] | null;
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly event_type:
+        | 'PASSWORD_RESET'
+        | 'PASSWORD_CHANGED'
+        | 'PASSWORD_ADDED'
+        | 'PROVIDER_LINKED'
+        | 'PROVIDER_UNLINKED'
+        | 'ADMIN_ROLE_GRANTED'
+        | 'ADMIN_ROLE_REVOKED';
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly metadata: CodecTypes['pg/jsonb@1']['input'] | null;
+      readonly user_id: CodecTypes['pg/uuid@1']['input'] | null;
+    };
     readonly auth_identities: {
       readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
@@ -642,7 +702,7 @@ export type StorageColumnInputTypes = {
       readonly password_recovery_notice_sent_at:
         CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly publicId: CodecTypes['pg/uuid@1']['input'];
-      readonly role: 'USER' | 'ADMIN';
+      readonly role: 'PLAYER' | 'ADMIN';
       readonly status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
     };
@@ -650,6 +710,24 @@ export type StorageColumnInputTypes = {
 };
 
 export namespace Models {
+  export type public_AuditLog = {
+    actorUserId: CodecTypes['pg/uuid@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    eventType:
+      | 'PASSWORD_RESET'
+      | 'PASSWORD_CHANGED'
+      | 'PASSWORD_ADDED'
+      | 'PROVIDER_LINKED'
+      | 'PROVIDER_UNLINKED'
+      | 'ADMIN_ROLE_GRANTED'
+      | 'ADMIN_ROLE_REVOKED';
+    id: CodecTypes['pg/uuid@1']['output'];
+    metadata: CodecTypes['pg/jsonb@1']['output'] | null;
+    userId: CodecTypes['pg/uuid@1']['output'] | null;
+    actor: public_User | null;
+    user: public_User | null;
+    readonly [RelationKeys]?: 'actor' | 'user';
+  };
   export type public_AuthIdentity = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/uuid@1']['output'];
@@ -744,9 +822,11 @@ export namespace Models {
     lastLoginAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
     passwordRecoveryNoticeSentAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
     publicId: CodecTypes['pg/uuid@1']['output'];
-    role: 'USER' | 'ADMIN';
+    role: 'PLAYER' | 'ADMIN';
     status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
     updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    auditLogsAsActor: public_AuditLog[];
+    auditLogsAsSubject: public_AuditLog[];
     authIdentities: public_AuthIdentity[];
     authSessions: public_AuthSession[];
     email: public_UserEmail[];
@@ -754,6 +834,8 @@ export namespace Models {
     oauthStates: public_OAuthState[];
     passwordResetChallenge: public_PasswordResetChallenge[];
     readonly [RelationKeys]?:
+      | 'auditLogsAsActor'
+      | 'auditLogsAsSubject'
       | 'authIdentities'
       | 'authSessions'
       | 'email'
@@ -777,6 +859,7 @@ export namespace Models {
 
 export declare const models: {
   public: {
+    AuditLog: Models.public_AuditLog;
     AuthIdentity: Models.public_AuthIdentity;
     AuthSession: Models.public_AuthSession;
     EmailVerificationChallenge: Models.public_EmailVerificationChallenge;
@@ -806,6 +889,90 @@ type ContractBase = Omit<
         readonly kind: 'postgres-schema';
         readonly entries: {
           readonly table: {
+            readonly audit_logs: {
+              columns: {
+                readonly actor_user_id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: true;
+                };
+                readonly created_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly event_type: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly metadata: {
+                  readonly nativeType: 'jsonb';
+                  readonly codecId: 'pg/jsonb@1';
+                  readonly nullable: true;
+                };
+                readonly user_id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: true;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'audit_logs_actor_user_id_idx_c46ca325';
+                  readonly prefix: 'audit_logs_actor_user_id_idx';
+                  readonly columns: readonly ['actor_user_id'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'audit_logs_event_type_idx_8ee05680';
+                  readonly prefix: 'audit_logs_event_type_idx';
+                  readonly columns: readonly ['event_type'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'audit_logs_user_id_idx_6c952402';
+                  readonly prefix: 'audit_logs_user_id_idx';
+                  readonly columns: readonly ['user_id'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'audit_logs';
+                    readonly columns: readonly ['user_id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'users';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'audit_logs';
+                    readonly columns: readonly ['actor_user_id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'users';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly auth_identities: {
               columns: {
                 readonly created_at: {
@@ -1401,7 +1568,7 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly default: {
                     readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/text@1', 'USER'>;
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PLAYER'>;
                   };
                 };
                 readonly status: {
@@ -1426,6 +1593,18 @@ type ContractBase = Omit<
             };
           };
           readonly valueSet: {
+            readonly AuditEventType: {
+              readonly kind: 'valueSet';
+              readonly values: readonly [
+                'PASSWORD_RESET',
+                'PASSWORD_CHANGED',
+                'PASSWORD_ADDED',
+                'PROVIDER_LINKED',
+                'PROVIDER_UNLINKED',
+                'ADMIN_ROLE_GRANTED',
+                'ADMIN_ROLE_REVOKED',
+              ];
+            };
             readonly AuthProvider: {
               readonly kind: 'valueSet';
               readonly values: readonly ['PASSWORD', 'GOOGLE', 'GITHUB'];
@@ -1459,7 +1638,7 @@ type ContractBase = Omit<
             };
             readonly UserRole: {
               readonly kind: 'valueSet';
-              readonly values: readonly ['USER', 'ADMIN'];
+              readonly values: readonly ['PLAYER', 'ADMIN'];
             };
             readonly UserStatus: {
               readonly kind: 'valueSet';
@@ -1476,6 +1655,7 @@ type ContractBase = Omit<
   readonly target: 'postgres';
   readonly targetFamily: 'sql';
   readonly roots: {
+    readonly audit_logs: { readonly namespace: 'public' & NamespaceId; readonly model: 'AuditLog' };
     readonly auth_identities: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'AuthIdentity';
@@ -1510,6 +1690,70 @@ type ContractBase = Omit<
     readonly namespaces: {
       readonly public: {
         readonly models: {
+          readonly AuditLog: {
+            readonly fields: {
+              readonly actorUserId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly eventType: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly metadata: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/jsonb@1' };
+              };
+              readonly userId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+            };
+            readonly relations: {
+              readonly actor: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['actorUserId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'audit_logs';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly actorUserId: { readonly column: 'actor_user_id' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly eventType: { readonly column: 'event_type' };
+                readonly id: { readonly column: 'id' };
+                readonly metadata: { readonly column: 'metadata' };
+                readonly userId: { readonly column: 'user_id' };
+              };
+            };
+          };
           readonly AuthIdentity: {
             readonly fields: {
               readonly createdAt: {
@@ -2049,6 +2293,28 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly auditLogsAsActor: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'AuditLog';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['actorUserId'];
+                };
+              };
+              readonly auditLogsAsSubject: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'AuditLog';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
+                };
+              };
               readonly authIdentities: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -2208,6 +2474,18 @@ type ContractBase = Omit<
           };
         };
         readonly enum: {
+          readonly AuditEventType: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'PASSWORD_RESET'; readonly value: 'PASSWORD_RESET' },
+              { readonly name: 'PASSWORD_CHANGED'; readonly value: 'PASSWORD_CHANGED' },
+              { readonly name: 'PASSWORD_ADDED'; readonly value: 'PASSWORD_ADDED' },
+              { readonly name: 'PROVIDER_LINKED'; readonly value: 'PROVIDER_LINKED' },
+              { readonly name: 'PROVIDER_UNLINKED'; readonly value: 'PROVIDER_UNLINKED' },
+              { readonly name: 'ADMIN_ROLE_GRANTED'; readonly value: 'ADMIN_ROLE_GRANTED' },
+              { readonly name: 'ADMIN_ROLE_REVOKED'; readonly value: 'ADMIN_ROLE_REVOKED' },
+            ];
+          };
           readonly AuthProvider: {
             readonly codecId: 'pg/text@1';
             readonly members: readonly [
@@ -2259,7 +2537,7 @@ type ContractBase = Omit<
           readonly UserRole: {
             readonly codecId: 'pg/text@1';
             readonly members: readonly [
-              { readonly name: 'USER'; readonly value: 'USER' },
+              { readonly name: 'PLAYER'; readonly value: 'PLAYER' },
               { readonly name: 'ADMIN'; readonly value: 'ADMIN' },
             ];
           };
@@ -2301,6 +2579,14 @@ type ContractBase = Omit<
     readonly executionHash: ExecutionHash;
     readonly mutations: {
       readonly defaults: readonly [
+        {
+          readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'audit_logs';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
         {
           readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
           readonly ref: {

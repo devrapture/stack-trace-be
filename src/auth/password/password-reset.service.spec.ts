@@ -1,5 +1,6 @@
 import type { PinoLogger } from 'nestjs-pino';
 import { vi } from 'vitest';
+import type { AuditLogRepository } from '../../audit/audit-log.repository.js';
 import type { EmailProvider } from '../../email/email-provider.js';
 import type { TransactionClient } from '../../prisma/db.js';
 import type { PrismaUnitOfWork } from '../../prisma/prisma-unit-of-work.js';
@@ -21,7 +22,7 @@ const genericResponse = {
 const activeUser: UserProfile = {
   id: 'user-id',
   publicId: 'public-id',
-  role: 'USER',
+  role: 'PLAYER',
   status: 'ACTIVE',
   avatarUrl: null,
   primaryEmail: {
@@ -94,6 +95,9 @@ function createService(options?: {
   const sessions = {
     revokeAllForUser: vi.fn().mockResolvedValue(undefined),
   } as unknown as AuthSessionsRepository;
+  const auditLog = {
+    record: vi.fn().mockResolvedValue(undefined),
+  } as unknown as AuditLogRepository;
   const logger = {
     error: vi.fn(),
   } as unknown as PinoLogger;
@@ -114,10 +118,12 @@ function createService(options?: {
       challenges,
       unitOfWork,
       sessions,
+      auditLog,
       logger,
       otp,
       hasher,
     ),
+    auditLog,
     challenges,
     email,
     hasher,
@@ -267,7 +273,7 @@ describe('PasswordResetService.resetPassword', () => {
   });
 
   it('consumes the challenge before changing the password', async () => {
-    const { service, challenges, passwords, sessions, transaction } =
+    const { service, auditLog, challenges, passwords, sessions, transaction } =
       createService();
 
     await expect(service.resetPassword(dto)).resolves.toEqual({
@@ -293,6 +299,13 @@ describe('PasswordResetService.resetPassword', () => {
       activeUser.id,
       'PASSWORD_CHANGE',
       undefined,
+      transaction,
+    );
+    expect(auditLog.record).toHaveBeenCalledWith(
+      {
+        userId: activeUser.id,
+        eventType: 'PASSWORD_RESET',
+      },
       transaction,
     );
   });

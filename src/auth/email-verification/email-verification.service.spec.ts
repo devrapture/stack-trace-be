@@ -12,7 +12,7 @@ import type { OtpService } from './otp.service.js';
 const pendingUser: UserProfile = {
   id: 'user-id',
   publicId: 'public-id',
-  role: 'USER',
+  role: 'PLAYER',
   status: 'PENDING',
   avatarUrl: null,
   primaryEmail: {
