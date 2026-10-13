@@ -51,38 +51,70 @@ async function main(): Promise<void> {
   await db.connect();
 
   const emailRecord = await db.orm.public.UserEmail.where({ normalizedEmail })
-    .include('user')
+    .include('user', (user) =>
+      user.include('email', (emails) => emails.where({ isPrimary: true })),
+    )
     .first();
 
   if (!emailRecord) {
     console.error(
       `No user found with email ${normalizedEmail}. Register and verify first.`,
     );
-    process.exit(1);
-  }
-
-  if (!emailRecord.verifiedAt) {
-    console.error(
-      `${normalizedEmail} has not verified their email yet. Refusing to promote.`,
-    );
-    process.exit(1);
-  }
-
-  if (emailRecord.user.role === 'ADMIN') {
-    console.log(`${normalizedEmail} is already an ADMIN. Nothing to do.`);
+    process.exitCode = 1;
     return;
   }
 
-  await db.transaction(async (tx) => {
-    await tx.orm.public.User.where({ id: emailRecord.user.id }).update({
+  const user = emailRecord.user;
+  if (!user) {
+    console.error(
+      `The account for ${normalizedEmail} could not be loaded. Refusing to promote.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const primaryEmail = user.email[0];
+  if (!primaryEmail) {
+    console.error(
+      `The account for ${normalizedEmail} has no primary email. Refusing to promote.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!primaryEmail.verifiedAt) {
+    console.error(
+      `The primary email ${primaryEmail.email} has not been verified. Refusing to promote.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const promoted = await db.transaction(async (tx) => {
+    const updated = await tx.orm.public.User.where({
+      id: user.id,
+      role: 'PLAYER',
+    }).update({
       role: 'ADMIN',
     });
+
+    if (!updated) return false;
+
     await tx.orm.public.AuditLog.create({
-      userId: emailRecord.user.id,
+      userId: user.id,
       eventType: 'ADMIN_ROLE_GRANTED',
       metadata: { via: 'cli' },
     });
+
+    return true;
   });
+
+  if (!promoted) {
+    console.log(
+      `${normalizedEmail} is already an ADMIN or no longer exists. Nothing to do.`,
+    );
+    return;
+  }
 
   console.log(`${normalizedEmail} is now an ADMIN.`);
 }
