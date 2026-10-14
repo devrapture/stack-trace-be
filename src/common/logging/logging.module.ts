@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { APP_CONFIG, AppConfig } from '../../config/app-config.js';
 import { PlatformConfigModule } from '../../config/platform-config.module.js';
-import { LOG_REDACTION_PATHS } from './log-redaction.js';
+import { LOG_REDACTION_PATHS, sanitizeRequestUrl } from './log-redaction.js';
 import { REQUEST_ID_HEADER, resolveRequestId } from './request-id.js';
 import { IncomingMessage } from 'http';
 import { ServerResponse } from 'http';
@@ -43,7 +43,7 @@ import { ServerResponse } from 'http';
             serializers: {
               req: (req) => ({
                 method: req.method,
-                url: req.url,
+                url: sanitizeRequestUrl(req.url),
                 requestId: req.id,
               }),
               res: (res) => ({

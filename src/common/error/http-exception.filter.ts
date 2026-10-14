@@ -28,7 +28,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       {
         requestId,
         method: request.method,
-        url: request.originalUrl,
+        url: request.routeOptions.url ?? 'unmatched',
         status,
         errorName: exception instanceof Error ? exception.name : 'UnknownError',
         errorMessage:
