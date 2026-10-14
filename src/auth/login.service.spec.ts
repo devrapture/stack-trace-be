@@ -11,7 +11,7 @@ import type { PasswordHasher } from './password/password.hasher.js';
 const activeUser: UserProfile = {
   id: 'user-id',
   publicId: 'public-id',
-  role: 'USER',
+  role: 'PLAYER',
   status: 'ACTIVE',
   avatarUrl: null,
   primaryEmail: {

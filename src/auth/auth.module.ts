@@ -17,9 +17,16 @@ import { PasswordResetService } from './password/password-reset.service.js';
 import { PASSWORD_RESET_REPOSITORY } from './password/password-reset.repository.js';
 import { PrismaPasswordRepository } from './password/prisma-password-reset.repository.js';
 import { PasswordManagementService } from './password/password-management.service.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 @Module({
-  imports: [PlatformConfigModule, UsersModule, EmailModule, SessionsModule],
+  imports: [
+    PlatformConfigModule,
+    UsersModule,
+    EmailModule,
+    SessionsModule,
+    AuditModule,
+  ],
   providers: [
     PasswordHasher,
     {

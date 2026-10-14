@@ -21,6 +21,7 @@ export const ErrorCode = {
   OAUTH_EMAIL_NOT_VERIFIED: 'oauth_email_not_verified',
   OAUTH_STATE_INVALID: 'oauth_state_invalid',
   GITHUB_EMAIL_UNAVAILABLE: 'github_email_unavailable',
+  INSUFFICIENT_PERMISSION: 'insufficient_permission',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

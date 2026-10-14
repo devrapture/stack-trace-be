@@ -1,5 +1,5 @@
 export type UserStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
-export type UserRole = 'USER' | 'ADMIN';
+export type UserRole = 'PLAYER' | 'ADMIN';
 export type AuthProviderName = 'PASSWORD' | 'GOOGLE' | 'GITHUB';
 
 export type UserProfile = Readonly<{

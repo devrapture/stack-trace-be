@@ -7,7 +7,7 @@ enum UserStatus {
 }
 
 enum UserRole {
-  USER
+  PLAYER
   ADMIN
 }
 
@@ -47,12 +47,22 @@ enum OAuthIntent {
   LINK
 }
 
+enum AuditEventType {
+  PASSWORD_RESET
+  PASSWORD_CHANGED
+  PASSWORD_ADDED
+  PROVIDER_LINKED
+  PROVIDER_UNLINKED
+  ADMIN_ROLE_GRANTED
+  ADMIN_ROLE_REVOKED
+}
+
 model User {
   id                           Uuid                         @id @default(uuid())
   publicId                     Uuid                         @unique @default(uuid())
   displayName                  String?                      @map("display_name")
   avatarUrl                    String?                      @map("avatar_url")
-  role                         UserRole                     @default(USER)
+  role                         UserRole                     @default(PLAYER)
   status                       UserStatus                   @default(PENDING)
   lastLoginAt                  Timestamptz(3)?              @map("last_login_at")
   passwordRecoveryNoticeSentAt Timestamptz(3)?              @map("password_recovery_notice_sent_at")
@@ -65,6 +75,8 @@ model User {
   emailVerificationChallenges  EmailVerificationChallenge[]
   passwordResetChallenge       PasswordResetChallenge[]
   oauthStates                  OAuthState[]
+  auditLogsAsSubject           AuditLog[]                   @relation("AuditLogSubject")
+  auditLogsAsActor             AuditLog[]                   @relation("AuditLogActor")
 
   @@map("users")
 }
@@ -192,8 +204,24 @@ model OAuthState {
 
   createdAt     Timestamptz(3)    @map("created_at") @default(now())
 
-  linkingUser    User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
+  linkingUser   User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@map("oauth_states")
+}
+
+model AuditLog {
+  id          Uuid           @id @default(uuid())
+  userId      Uuid?          @map("user_id")
+  actorUserId Uuid?          @map("actor_user_id")
+  eventType   AuditEventType @map("event_type")
+  metadata    Jsonb?
+  createdAt   Timestamptz(3) @map("created_at") @default(now())
+  user        User?          @relation("AuditLogSubject", fields: [userId], references: [id], onDelete: SetNull)
+  actor       User?          @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt, id])
+  @@index([eventType])
+  @@map("audit_logs")
 }
