@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { Temporal } from 'temporal-polyfill/full';
 import {
   AUDIT_LOG_REPOSITORY,
@@ -31,7 +32,7 @@ function parseCursor(cursor: string): AuditLogCursor {
       typeof value.createdAt !== 'string' ||
       !('id' in value) ||
       typeof value.id !== 'string' ||
-      value.id.length === 0
+      !isUUID(value.id)
     ) {
       throw new Error('Invalid cursor shape');
     }

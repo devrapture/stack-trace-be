@@ -16,6 +16,8 @@ function createController(
 }
 
 describe('AdminController.listAuditLogs', () => {
+  const auditLogId = '123e4567-e89b-42d3-a456-426614174000';
+
   it('uses the default page size and returns the repository entries', async () => {
     const entries = [
       {
@@ -40,7 +42,7 @@ describe('AdminController.listAuditLogs', () => {
       limit: 25,
       cursor: JSON.stringify({
         createdAt: '2026-10-13T08:00:00.000Z',
-        id: 'log-id',
+        id: auditLogId,
       }),
     });
 
@@ -48,7 +50,7 @@ describe('AdminController.listAuditLogs', () => {
       limit: 25,
       cursor: {
         createdAt: Temporal.Instant.from('2026-10-13T08:00:00.000Z'),
-        id: 'log-id',
+        id: auditLogId,
       },
     });
   });
@@ -58,6 +60,20 @@ describe('AdminController.listAuditLogs', () => {
 
     await expect(
       controller.listAuditLogs({ cursor: 'not-a-cursor' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it('rejects a cursor with a non-UUID id without querying the repository', async () => {
+    const { controller, list } = createController();
+
+    await expect(
+      controller.listAuditLogs({
+        cursor: JSON.stringify({
+          createdAt: '2026-10-13T08:00:00.000Z',
+          id: 'x',
+        }),
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(list).not.toHaveBeenCalled();
   });

@@ -1,5 +1,9 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import {
+  AUDIT_LOG_REPOSITORY,
+  type AuditLogRepository,
+} from '../../audit/audit-log.repository.js';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
 import {
@@ -41,6 +45,8 @@ export class PasswordManagementService {
     private readonly emailProvider: EmailProvider,
     @Inject(AUTH_SESSIONS_REPOSITORY)
     private readonly sessionRepository: AuthSessionsRepository,
+    @Inject(AUDIT_LOG_REPOSITORY)
+    private readonly auditLogRepository: AuditLogRepository,
     private readonly passwordHasher: PasswordHasher,
     private readonly logger: PinoLogger,
   ) {}
@@ -108,6 +114,14 @@ export class PasswordManagementService {
         userId,
         'PASSWORD_CHANGE',
         currentSessionId,
+        tx,
+      );
+
+      await this.auditLogRepository.record(
+        {
+          userId,
+          eventType: 'PASSWORD_CHANGED',
+        },
         tx,
       );
     });

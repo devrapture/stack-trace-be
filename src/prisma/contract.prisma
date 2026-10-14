@@ -221,6 +221,7 @@ model AuditLog {
   actor       User?          @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([createdAt, id])
   @@index([eventType])
   @@map("audit_logs")
 }
