@@ -38,16 +38,19 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
       (log) => log.id.desc(),
     ]);
 
-    const rows = cursor
+    const rows = await (cursor
       ? ordered
           .cursor({
-            createdAt: cursor?.createdAt,
-            id: cursor?.id,
+            createdAt: cursor.createdAt,
+            id: cursor.id,
           })
           .limit(limit)
           .all()
-      : await ordered.limit(limit).all();
+      : ordered.limit(limit).all());
 
-    return rows;
+    return rows.map((row) => ({
+      ...row,
+      createdAt: new Date(row.createdAt.epochMilliseconds),
+    }));
   }
 }
