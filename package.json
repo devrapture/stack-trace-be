@@ -41,7 +41,7 @@
     "@nestjs/schedule": "^12.0.2",
     "@nestjs/throttler": "^6.7.1",
     "@prisma/adapter-ppg": "^7.10.0",
-    "@prisma/orm-postgres": "8.0.0-rc.13",
+    "@prisma/orm-postgres": "8.0.0-rc.18",
     "@prisma/ppg": "^1.0.1",
     "argon2": "^0.45.1",
     "class-transformer": "^0.5.1",
