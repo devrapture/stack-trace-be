@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'db908cf7b5b46969a1852b90e0de69fc1a670a564842a52088c83c8b932c176f'>;
+  StorageHashBase<'17f14006a3682311192bea559c14f3710be59d772ef7f005c82e309852244426'>;
 export type ExecutionHash =
-  ExecutionHashBase<'391e52e07ffdb7f44b7e061fb02e0d6e0c52c260a86dcb277d2a73fb9aef3205'>;
+  ExecutionHashBase<'95a81433725b602a304667655f1d5b66411675f1b0c0e9bf0619038b3773e50e'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -306,6 +306,19 @@ export type FieldOutputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly userId: CodecTypes['pg/uuid@1']['output'];
     };
+    readonly OAuthLinkChallenge: {
+      readonly attemptCount: CodecTypes['pg/int4@1']['output'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly maxAttempts: CodecTypes['pg/int4@1']['output'];
+      readonly otpHash: CodecTypes['pg/text@1']['output'];
+      readonly provider: 'GOOGLE' | 'GITHUB';
+      readonly providerSubject: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly userId: CodecTypes['pg/uuid@1']['output'];
+    };
     readonly OAuthState: {
       readonly clientType: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
       readonly consumedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
@@ -418,6 +431,19 @@ export type FieldInputTypes = {
       readonly maxAttempts: CodecTypes['pg/int4@1']['input'];
       readonly otpHash: CodecTypes['pg/text@1']['input'];
       readonly purpose: 'REGISTRATION';
+      readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly userId: CodecTypes['pg/uuid@1']['input'];
+    };
+    readonly OAuthLinkChallenge: {
+      readonly attemptCount: CodecTypes['pg/int4@1']['input'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly maxAttempts: CodecTypes['pg/int4@1']['input'];
+      readonly otpHash: CodecTypes['pg/text@1']['input'];
+      readonly provider: 'GOOGLE' | 'GITHUB';
+      readonly providerSubject: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly userId: CodecTypes['pg/uuid@1']['input'];
     };
@@ -536,6 +562,19 @@ export type StorageColumnTypes = {
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly user_id: CodecTypes['pg/uuid@1']['output'];
     };
+    readonly oauth_link_challenges: {
+      readonly attempt_count: CodecTypes['pg/int4@1']['output'];
+      readonly consumed_at: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly max_attempts: CodecTypes['pg/int4@1']['output'];
+      readonly otp_hash: CodecTypes['pg/text@1']['output'];
+      readonly provider: 'GOOGLE' | 'GITHUB';
+      readonly provider_subject: CodecTypes['pg/text@1']['output'];
+      readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly user_id: CodecTypes['pg/uuid@1']['output'];
+    };
     readonly oauth_states: {
       readonly client_type: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
       readonly consumed_at: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
@@ -648,6 +687,19 @@ export type StorageColumnInputTypes = {
       readonly max_attempts: CodecTypes['pg/int4@1']['input'];
       readonly otp_hash: CodecTypes['pg/text@1']['input'];
       readonly purpose: 'REGISTRATION';
+      readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly user_id: CodecTypes['pg/uuid@1']['input'];
+    };
+    readonly oauth_link_challenges: {
+      readonly attempt_count: CodecTypes['pg/int4@1']['input'];
+      readonly consumed_at: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly created_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly max_attempts: CodecTypes['pg/int4@1']['input'];
+      readonly otp_hash: CodecTypes['pg/text@1']['input'];
+      readonly provider: 'GOOGLE' | 'GITHUB';
+      readonly provider_subject: CodecTypes['pg/text@1']['input'];
       readonly updated_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly user_id: CodecTypes['pg/uuid@1']['input'];
     };
@@ -776,6 +828,21 @@ export namespace Models {
     user: public_User;
     readonly [RelationKeys]?: 'user';
   };
+  export type public_OAuthLinkChallenge = {
+    attemptCount: CodecTypes['pg/int4@1']['output'];
+    consumedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    id: CodecTypes['pg/uuid@1']['output'];
+    maxAttempts: CodecTypes['pg/int4@1']['output'];
+    otpHash: CodecTypes['pg/text@1']['output'];
+    provider: 'GOOGLE' | 'GITHUB';
+    providerSubject: CodecTypes['pg/text@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    userId: CodecTypes['pg/uuid@1']['output'];
+    user: public_User;
+    readonly [RelationKeys]?: 'user';
+  };
   export type public_OAuthState = {
     clientType: 'WEB' | 'IOS' | 'ANDROID' | 'OTHER';
     consumedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
@@ -831,6 +898,7 @@ export namespace Models {
     authSessions: public_AuthSession[];
     email: public_UserEmail[];
     emailVerificationChallenges: public_EmailVerificationChallenge[];
+    oauthLinkChallenges: public_OAuthLinkChallenge[];
     oauthStates: public_OAuthState[];
     passwordResetChallenge: public_PasswordResetChallenge[];
     readonly [RelationKeys]?:
@@ -840,6 +908,7 @@ export namespace Models {
       | 'authSessions'
       | 'email'
       | 'emailVerificationChallenges'
+      | 'oauthLinkChallenges'
       | 'oauthStates'
       | 'passwordResetChallenge';
   };
@@ -863,6 +932,7 @@ export declare const models: {
     AuthIdentity: Models.public_AuthIdentity;
     AuthSession: Models.public_AuthSession;
     EmailVerificationChallenge: Models.public_EmailVerificationChallenge;
+    OAuthLinkChallenge: Models.public_OAuthLinkChallenge;
     OAuthState: Models.public_OAuthState;
     PasswordCredential: Models.public_PasswordCredential;
     PasswordResetChallenge: Models.public_PasswordResetChallenge;
@@ -1214,6 +1284,101 @@ type ContractBase = Omit<
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'email_verification_challenges';
+                    readonly columns: readonly ['user_id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'users';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly oauth_link_challenges: {
+              columns: {
+                readonly attempt_count: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                };
+                readonly consumed_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: true;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly created_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly expires_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly precision: 3 };
+                };
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly max_attempts: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 5>;
+                  };
+                };
+                readonly otp_hash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly provider: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly provider_subject: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly updated_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                };
+                readonly user_id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'oauth_link_challenges_user_id_idx_6c952402';
+                  readonly prefix: 'oauth_link_challenges_user_id_idx';
+                  readonly columns: readonly ['user_id'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'oauth_link_challenges';
                     readonly columns: readonly ['user_id'];
                   };
                   readonly target: {
@@ -1674,6 +1839,10 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'EmailVerificationChallenge';
     };
+    readonly oauth_link_challenges: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'OAuthLinkChallenge';
+    };
     readonly oauth_states: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'OAuthState';
@@ -2008,6 +2177,97 @@ type ContractBase = Omit<
                 readonly maxAttempts: { readonly column: 'max_attempts' };
                 readonly otpHash: { readonly column: 'otp_hash' };
                 readonly purpose: { readonly column: 'purpose' };
+                readonly updatedAt: { readonly column: 'updated_at' };
+                readonly userId: { readonly column: 'user_id' };
+              };
+            };
+          };
+          readonly OAuthLinkChallenge: {
+            readonly fields: {
+              readonly attemptCount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly consumedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly expiresAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly maxAttempts: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly otpHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly provider: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly providerSubject: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+            };
+            readonly relations: {
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'oauth_link_challenges';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly attemptCount: { readonly column: 'attempt_count' };
+                readonly consumedAt: { readonly column: 'consumed_at' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly expiresAt: { readonly column: 'expires_at' };
+                readonly id: { readonly column: 'id' };
+                readonly maxAttempts: { readonly column: 'max_attempts' };
+                readonly otpHash: { readonly column: 'otp_hash' };
+                readonly provider: { readonly column: 'provider' };
+                readonly providerSubject: { readonly column: 'provider_subject' };
                 readonly updatedAt: { readonly column: 'updated_at' };
                 readonly userId: { readonly column: 'user_id' };
               };
@@ -2365,6 +2625,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['userId'];
                 };
               };
+              readonly oauthLinkChallenges: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'OAuthLinkChallenge';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
+                };
+              };
               readonly oauthStates: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -2640,6 +2911,23 @@ type ContractBase = Omit<
           readonly onUpdate: { readonly id: 'instantNow'; readonly kind: 'generator' };
           readonly ref: {
             readonly entry: 'email_verification_challenges';
+            readonly field: 'updated_at';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'oauth_link_challenges';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'instantNow'; readonly kind: 'generator' };
+          readonly onUpdate: { readonly id: 'instantNow'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'oauth_link_challenges';
             readonly field: 'updated_at';
             readonly namespace: 'public';
           };

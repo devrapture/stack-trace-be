@@ -20,6 +20,10 @@
       "model": "EmailVerificationChallenge",
       "namespace": "public"
     },
+    "oauth_link_challenges": {
+      "model": "OAuthLinkChallenge",
+      "namespace": "public"
+    },
     "oauth_states": {
       "model": "OAuthState",
       "namespace": "public"
@@ -748,6 +752,159 @@
               "table": "email_verification_challenges"
             }
           },
+          "OAuthLinkChallenge": {
+            "fields": {
+              "attemptCount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "consumedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "maxAttempts": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "otpHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OAuthProviderType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "providerSubject": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "attemptCount": {
+                  "column": "attempt_count"
+                },
+                "consumedAt": {
+                  "column": "consumed_at"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "expiresAt": {
+                  "column": "expires_at"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "maxAttempts": {
+                  "column": "max_attempts"
+                },
+                "otpHash": {
+                  "column": "otp_hash"
+                },
+                "provider": {
+                  "column": "provider"
+                },
+                "providerSubject": {
+                  "column": "provider_subject"
+                },
+                "updatedAt": {
+                  "column": "updated_at"
+                },
+                "userId": {
+                  "column": "user_id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "oauth_link_challenges"
+            }
+          },
           "OAuthState": {
             "fields": {
               "clientType": {
@@ -1304,6 +1461,21 @@
                 },
                 "to": {
                   "model": "EmailVerificationChallenge",
+                  "namespace": "public"
+                }
+              },
+              "oauthLinkChallenges": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "OAuthLinkChallenge",
                   "namespace": "public"
                 }
               },
@@ -1997,6 +2169,134 @@
               },
               "uniques": []
             },
+            "oauth_link_challenges": {
+              "checks": [
+                {
+                  "expression": "\"provider\" IN ('GOOGLE', 'GITHUB')",
+                  "name": "oauth_link_challenges_provider_check_5918ff78",
+                  "prefix": "oauth_link_challenges_provider_check"
+                }
+              ],
+              "columns": {
+                "attempt_count": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "consumed_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "expires_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "max_attempts": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 5
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "otp_hash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "provider": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OAuthProviderType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "provider_subject": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updated_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "oauth_link_challenges"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "user_id"
+                  ],
+                  "name": "oauth_link_challenges_user_id_idx_6c952402",
+                  "prefix": "oauth_link_challenges_user_id_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "oauth_states": {
               "checks": [
                 {
@@ -2616,10 +2916,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "db908cf7b5b46969a1852b90e0de69fc1a670a564842a52088c83c8b932c176f"
+    "storageHash": "17f14006a3682311192bea559c14f3710be59d772ef7f005c82e309852244426"
   },
   "execution": {
-    "executionHash": "391e52e07ffdb7f44b7e061fb02e0d6e0c52c260a86dcb277d2a73fb9aef3205",
+    "executionHash": "95a81433725b602a304667655f1d5b66411675f1b0c0e9bf0619038b3773e50e",
     "mutations": {
       "defaults": [
         {
@@ -2707,6 +3007,32 @@
           },
           "ref": {
             "entry": "email_verification_challenges",
+            "field": "updated_at",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "oauth_link_challenges",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "oauth_link_challenges",
             "field": "updated_at",
             "namespace": "public"
           }

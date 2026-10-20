@@ -1,11 +1,15 @@
 import { vi } from 'vitest';
+import type { OtpService } from '../auth/email-verification/otp.service.js';
 import type { AppConfig } from '../config/app-config.js';
+import type { EmailProvider } from '../email/email-provider.js';
 import type { UnitOfWork } from '../prisma/unit-of-work.js';
 import type { SessionService } from '../sessions/session.service.js';
 import type { UsersRepository } from '../users/users.repository.js';
 import type { GithubOauthProvider } from './github-oauth.provider.js';
 import type { GoogleOauthProvider } from './google-oauth.provider.js';
+import type { IdentityLinkingService } from './identity-linking.service.js';
 import type { OAuthIdentitiesRepository } from './oauth-identities.repository.js';
+import type { OAuthLinkChallengeRepository } from './oauth-link-challenge.repository.js';
 import { OAuthLoginService } from './oauth-login.service.js';
 import type { OAuthStateRepository } from './oauth-state.repository.js';
 
@@ -25,9 +29,13 @@ const createService = (overrides?: {
     overrides?.identityRepository as OAuthIdentitiesRepository,
     {} as UnitOfWork,
     overrides?.userRepository as UsersRepository,
+    {} as EmailProvider,
+    {} as OAuthLinkChallengeRepository,
     overrides?.sessionService as SessionService,
     overrides?.googleProvider as GoogleOauthProvider,
     {} as GithubOauthProvider,
+    {} as IdentityLinkingService,
+    {} as OtpService,
   );
 
 describe('OAuthLoginService callback redirect URI', () => {
@@ -96,7 +104,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       ),
     );
 
-    expect(result).toBe(issuedSession);
+    expect(result).toEqual({ kind: 'session', session: issuedSession });
     const exchangeInput = exchangeAndVerify.mock.calls[0]?.[0] as {
       callbackUrl: URL;
     };

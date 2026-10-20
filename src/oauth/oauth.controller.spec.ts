@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { vi } from 'vitest';
 import type { AppConfig } from '../config/app-config.js';
+import type { IdentityLinkingService } from './identity-linking.service.js';
 import { OauthController } from './oauth.controller.js';
 import type { OAuthLoginService } from './oauth-login.service.js';
 import { oauthStateCookieName } from './oauth-state-binding.js';
@@ -28,9 +29,13 @@ describe('OauthController state binding', () => {
       authorizationUrl: 'https://accounts.google.com/authorize',
       state: 'oauth-state',
     });
-    const controller = new OauthController(config, {
-      start,
-    } as unknown as OAuthLoginService);
+    const controller = new OauthController(
+      config,
+      {
+        start,
+      } as unknown as OAuthLoginService,
+      {} as IdentityLinkingService,
+    );
     const reply = createReply();
 
     await controller.googleStart(
@@ -55,9 +60,13 @@ describe('OauthController state binding', () => {
 
   it('rejects non-WEB clients before creating OAuth state', async () => {
     const start = vi.fn();
-    const controller = new OauthController(config, {
-      start,
-    } as unknown as OAuthLoginService);
+    const controller = new OauthController(
+      config,
+      {
+        start,
+      } as unknown as OAuthLoginService,
+      {} as IdentityLinkingService,
+    );
 
     await expect(
       controller.githubStart(
@@ -70,9 +79,13 @@ describe('OauthController state binding', () => {
 
   it('requires the callback state to match the initiating browser cookie', async () => {
     const handleCallback = vi.fn();
-    const controller = new OauthController(config, {
-      handleCallback,
-    } as unknown as OAuthLoginService);
+    const controller = new OauthController(
+      config,
+      {
+        handleCallback,
+      } as unknown as OAuthLoginService,
+      {} as IdentityLinkingService,
+    );
     const reply = createReply();
     const request = {
       cookies: {},
@@ -101,10 +114,14 @@ describe('OauthController state binding', () => {
         state: 'new-state',
       });
     const handleCallback = vi.fn();
-    const controller = new OauthController(config, {
-      start,
-      handleCallback,
-    } as unknown as OAuthLoginService);
+    const controller = new OauthController(
+      config,
+      {
+        start,
+        handleCallback,
+      } as unknown as OAuthLoginService,
+      {} as IdentityLinkingService,
+    );
     const firstReply = createReply();
     const secondReply = createReply();
     await controller.googleStart(
@@ -142,17 +159,25 @@ describe('OauthController state binding', () => {
       authorizationUrl: 'https://accounts.google.com/authorize',
       state: 'oauth-state',
     });
-    const handleCallback = vi.fn().mockResolvedValue({
+    const session = {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       refreshTokenExpiresAt: new Date('2026-11-12T08:00:00Z'),
       sessionId: 'session-id',
       clientType: 'WEB',
+    };
+    const handleCallback = vi.fn().mockResolvedValue({
+      kind: 'session',
+      session,
     });
-    const controller = new OauthController(config, {
-      start,
-      handleCallback,
-    } as unknown as OAuthLoginService);
+    const controller = new OauthController(
+      config,
+      {
+        start,
+        handleCallback,
+      } as unknown as OAuthLoginService,
+      {} as IdentityLinkingService,
+    );
     const reply = createReply();
     await controller.googleStart(
       { clientType: 'WEB' },
