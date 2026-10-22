@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import {
   AUDIT_LOG_REPOSITORY,
   type AuditLogRepository,
@@ -63,6 +64,7 @@ export class IdentityLinkingService {
     private readonly otpService: OtpService,
     private readonly sessionService: SessionService,
     private readonly registry: OAuthProviderRegistry,
+    private readonly logger: PinoLogger,
   ) {}
 
   async listLinkedMethods(userId: string): Promise<LinkedMethodDto[]> {
@@ -226,14 +228,12 @@ export class IdentityLinkingService {
       );
     });
 
-    if (user?.primaryEmail)
-      await this.emailProvider.send({
-        to: user.primaryEmail.display,
-        ...accountEmail({
-          type: 'provider_linked',
-          provider: challenge.provider,
-        }),
-      });
+    await this.sendProviderChangeNotificationBestEffort(
+      user.id,
+      challenge.provider,
+      'provider_linked',
+      user.primaryEmail?.display,
+    );
 
     return this.sessionService.createSession(user.id, {
       clientType: dto.clientType,
@@ -288,16 +288,11 @@ export class IdentityLinkingService {
       );
     });
 
-    const user = await this.userRepository.getUserById(userId);
-
-    if (user?.primaryEmail)
-      await this.emailProvider.send({
-        to: user.primaryEmail.display,
-        ...accountEmail({
-          type: 'provider_unlinked',
-          provider,
-        }),
-      });
+    await this.sendProviderChangeNotificationBestEffort(
+      userId,
+      provider,
+      'provider_unlinked',
+    );
   }
 
   private async attachIdentity(
@@ -349,15 +344,38 @@ export class IdentityLinkingService {
       });
     });
 
-    const user = await this.userRepository.getUserById(userId);
+    await this.sendProviderChangeNotificationBestEffort(
+      userId,
+      provider,
+      'provider_linked',
+    );
+  }
 
-    if (user?.primaryEmail)
+  private async sendProviderChangeNotificationBestEffort(
+    userId: string,
+    provider: OAuthProviderName,
+    notification: 'provider_linked' | 'provider_unlinked',
+    recipient?: string,
+  ): Promise<void> {
+    try {
+      const to =
+        recipient ??
+        (await this.userRepository.getUserById(userId))?.primaryEmail?.display;
+
+      if (!to) return;
+
       await this.emailProvider.send({
-        to: user.primaryEmail.display,
+        to,
         ...accountEmail({
-          type: 'provider_linked',
+          type: notification,
           provider,
         }),
       });
+    } catch (error) {
+      this.logger.error(
+        { err: error, userId, provider, notification },
+        'Provider change succeeded, but the notification email failed',
+      );
+    }
   }
 }
