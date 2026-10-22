@@ -22,7 +22,10 @@ export interface OAuthIdentitiesRepository {
     tx?: TransactionClient,
   ): Promise<void>;
 
-  listForUser(userId: string): Promise<LinkedOAuthIdentity[]>;
+  listForUser(
+    userId: string,
+    tx?: TransactionClient,
+  ): Promise<LinkedOAuthIdentity[]>;
 
   deleteForUser(
     userId: string,

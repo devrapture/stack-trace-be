@@ -38,8 +38,12 @@ export class PrismaOAuthIdentitiesRepository implements OAuthIdentitiesRepositor
     });
   }
 
-  async listForUser(userId: string): Promise<LinkedOAuthIdentity[]> {
-    const row = await this.db.AuthIdentity.where({ userId })
+  async listForUser(
+    userId: string,
+    tx?: TransactionClient,
+  ): Promise<LinkedOAuthIdentity[]> {
+    const client = tx ?? this.prisma.db;
+    const row = await client.orm.public.AuthIdentity.where({ userId })
       .where((identity) => identity.provider.in(['GOOGLE', 'GITHUB']))
       .select('provider', 'providerSubject', 'createdAt')
       .all();

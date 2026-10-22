@@ -244,35 +244,37 @@ export class IdentityLinkingService {
     userId: string,
     provider: OAuthProviderName,
   ): Promise<void> {
-    const [passwordHash, oauthIdentities] = await Promise.all([
-      this.passwordCredentialsRepository.findHashByUserId(userId),
-      this.oauthIdentitiesRepository.listForUser(userId),
-    ]);
-
-    const isLinked = oauthIdentities.some(
-      (identity) => identity.provider === provider,
-    );
-
-    if (!isLinked)
-      throw new AppError(
-        ErrorCode.PROVIDER_NOT_LINKED,
-        'This provider is not linked to your account',
-        HttpStatus.NOT_FOUND,
-      );
-
-    const remainingOtherOAuth = oauthIdentities.filter(
-      (i) => i.provider !== provider,
-    ).length;
-    const remainingTotal = (passwordHash ? 1 : 0) + remainingOtherOAuth;
-
-    if (remainingTotal === 0)
-      throw new AppError(
-        ErrorCode.CANNOT_REMOVE_LAST_AUTH_METHOD,
-        'You cannot remove your only remaining way to sign in.',
-        HttpStatus.BAD_REQUEST,
-      );
-
     await this.unitOfWork.run(async (tx) => {
+      await this.userRepository.lockForUpdate(userId, tx);
+
+      const [passwordHash, oauthIdentities] = await Promise.all([
+        this.passwordCredentialsRepository.findHashByUserId(userId, tx),
+        this.oauthIdentitiesRepository.listForUser(userId, tx),
+      ]);
+
+      const isLinked = oauthIdentities.some(
+        (identity) => identity.provider === provider,
+      );
+
+      if (!isLinked)
+        throw new AppError(
+          ErrorCode.PROVIDER_NOT_LINKED,
+          'This provider is not linked to your account',
+          HttpStatus.NOT_FOUND,
+        );
+
+      const remainingOtherOAuth = oauthIdentities.filter(
+        (identity) => identity.provider !== provider,
+      ).length;
+      const remainingTotal = (passwordHash ? 1 : 0) + remainingOtherOAuth;
+
+      if (remainingTotal === 0)
+        throw new AppError(
+          ErrorCode.CANNOT_REMOVE_LAST_AUTH_METHOD,
+          'You cannot remove your only remaining way to sign in.',
+          HttpStatus.BAD_REQUEST,
+        );
+
       await this.oauthIdentitiesRepository.deleteForUser(userId, provider, tx);
       await this.auditLogRepository.record(
         {

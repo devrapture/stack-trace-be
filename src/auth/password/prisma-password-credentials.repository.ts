@@ -87,8 +87,12 @@ export class PrismaPasswordCredentialsRepository implements PasswordCredentialsR
     return updated !== null;
   }
 
-  async findHashByUserId(userId: string): Promise<string | null> {
-    const identity = await this.prisma.db.orm.public.AuthIdentity.where({
+  async findHashByUserId(
+    userId: string,
+    tx?: TransactionClient,
+  ): Promise<string | null> {
+    const client = tx ?? this.prisma.db;
+    const identity = await client.orm.public.AuthIdentity.where({
       userId,
       provider: 'PASSWORD',
     })
