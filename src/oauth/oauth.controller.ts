@@ -110,11 +110,13 @@ export class OauthController {
   async googleLinkStart(
     @CurrentUser() currentUser: RequestUser,
     @Query() query: StartOAuthDto,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.identityLinkingService.startExplicitLink(
+    return this.startLink(
       currentUser.userId,
       'GOOGLE',
       query.clientType,
+      reply,
     );
   }
 
@@ -123,11 +125,13 @@ export class OauthController {
   async githubLinkStart(
     @CurrentUser() currentUser: RequestUser,
     @Query() query: StartOAuthDto,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.identityLinkingService.startExplicitLink(
+    return this.startLink(
       currentUser.userId,
       'GITHUB',
       query.clientType,
+      reply,
     );
   }
 
@@ -171,12 +175,41 @@ export class OauthController {
     return undefined;
   }
 
+  private async startLink(
+    userId: string,
+    provider: OAuthProviderName,
+    clientType: StartOAuthDto['clientType'],
+    reply: FastifyReply,
+  ): Promise<{ authorizationUrl: string }> {
+    const { authorizationUrl, state } =
+      await this.identityLinkingService.startExplicitLink(
+        userId,
+        provider,
+        clientType,
+      );
+    setOAuthStateCookie(
+      reply,
+      provider,
+      state,
+      this.config.environment === 'production',
+    );
+
+    return { authorizationUrl };
+  }
+
   private async callback(
     provider: OAuthProviderName,
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<
-    SessionResponseBody | { linked: true; provider: OAuthProviderName }
+    | SessionResponseBody
+    | { linked: true; provider: OAuthProviderName }
+    | {
+        verificationRequired: true;
+        code: typeof ErrorCode.ACCOUNT_LINK_REQUIRED;
+        provider: OAuthProviderName;
+        message: string;
+      }
   > {
     const callbackUrl = new URL(request.url, this.config.publicBaseUrl);
     const state = callbackUrl.searchParams.get('state');
@@ -195,6 +228,16 @@ export class OauthController {
       provider,
       callbackUrl,
     );
+
+    if (result.kind === 'link_required') {
+      return {
+        verificationRequired: true,
+        code: ErrorCode.ACCOUNT_LINK_REQUIRED,
+        provider: result.provider,
+        message:
+          'A one-time verification code has been sent to your email address.',
+      };
+    }
 
     if (result.kind === 'linked') {
       return { linked: true, provider: result.provider };

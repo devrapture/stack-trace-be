@@ -90,7 +90,7 @@ export class IdentityLinkingService {
     userId: string,
     provider: OAuthProviderName,
     clientType: SessionClientTypeName,
-  ): Promise<{ authorizationUrl: string }> {
+  ): Promise<{ authorizationUrl: string; state: string }> {
     const alreadyLinked = (
       await this.oauthIdentitiesRepository.listForUser(userId)
     ).some((identity) => identity.provider === provider);
@@ -106,7 +106,7 @@ export class IdentityLinkingService {
     const redirectUri = this.registry.redirectUriFor(provider);
     const request = await adapter.createAuthorizationRequest(redirectUri);
 
-    this.oauthStateRepository.create({
+    await this.oauthStateRepository.create({
       intent: 'LINK',
       provider,
       state: request.state,
@@ -120,7 +120,10 @@ export class IdentityLinkingService {
       expiresAt: new Date(Date.now() + OAUTH_STATE_TTL_MS),
     });
 
-    return { authorizationUrl: request.authorizationUrl };
+    return {
+      authorizationUrl: request.authorizationUrl,
+      state: request.state,
+    };
   }
 
   async completeExplicitLink(
@@ -169,7 +172,7 @@ export class IdentityLinkingService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
 
-    if (challenge.expiresAt.getTime() >= Date.now())
+    if (challenge.expiresAt.getTime() <= Date.now())
       throw new AppError(
         ErrorCode.OTP_VERIFICATION_FAILED,
         'That code is invalid or has expired. Request a new one.',
@@ -195,7 +198,7 @@ export class IdentityLinkingService {
     }
 
     await this.unitOfWork.run(async (tx) => {
-      const consumed = this.oauthLinkChallengeRepository.markConsumed(
+      const consumed = await this.oauthLinkChallengeRepository.markConsumed(
         challenge.id,
         tx,
       );

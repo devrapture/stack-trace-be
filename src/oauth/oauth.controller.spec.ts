@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { vi } from 'vitest';
 import type { AppConfig } from '../config/app-config.js';
+import type { RequestUser } from '../sessions/jwt.strategy.js';
 import type { IdentityLinkingService } from './identity-linking.service.js';
 import { OauthController } from './oauth.controller.js';
 import type { OAuthLoginService } from './oauth-login.service.js';
@@ -76,6 +77,49 @@ describe('OauthController state binding', () => {
     ).rejects.toMatchObject({ code: 'bad_request', httpStatus: 400 });
     expect(start).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['Google', 'GOOGLE', 'googleLinkStart'],
+    ['GitHub', 'GITHUB', 'githubLinkStart'],
+  ] as const)(
+    'sets a binding cookie when starting an explicit %s link',
+    async (_label, provider, method) => {
+      const startExplicitLink = vi.fn().mockResolvedValue({
+        authorizationUrl: `https://${provider.toLowerCase()}.example/authorize`,
+        state: `${provider.toLowerCase()}-state`,
+      });
+      const controller = new OauthController(
+        config,
+        {} as OAuthLoginService,
+        { startExplicitLink } as unknown as IdentityLinkingService,
+      );
+      const reply = createReply();
+
+      const result = await controller[method](
+        { userId: 'user-id' } as RequestUser,
+        { clientType: 'WEB' },
+        reply as unknown as FastifyReply,
+      );
+
+      expect(startExplicitLink).toHaveBeenCalledWith(
+        'user-id',
+        provider,
+        'WEB',
+      );
+      expect(reply.setCookie).toHaveBeenCalledWith(
+        oauthStateCookieName(provider),
+        expect.any(String),
+        expect.objectContaining({
+          httpOnly: true,
+          sameSite: 'lax',
+          maxAge: 600,
+        }),
+      );
+      expect(result).toEqual({
+        authorizationUrl: `https://${provider.toLowerCase()}.example/authorize`,
+      });
+    },
+  );
 
   it('requires the callback state to match the initiating browser cookie', async () => {
     const handleCallback = vi.fn();
@@ -200,5 +244,43 @@ describe('OauthController state binding', () => {
       oauthStateCookieName('GOOGLE'),
       expect.any(Object),
     );
+  });
+
+  it('returns a successful verification-required response after sending a link OTP', async () => {
+    const start = vi.fn().mockResolvedValue({
+      authorizationUrl: 'https://accounts.google.com/authorize',
+      state: 'oauth-state',
+    });
+    const handleCallback = vi.fn().mockResolvedValue({
+      kind: 'link_required',
+      provider: 'GOOGLE',
+    });
+    const controller = new OauthController(
+      config,
+      { start, handleCallback } as unknown as OAuthLoginService,
+      {} as IdentityLinkingService,
+    );
+    const reply = createReply();
+    await controller.googleStart(
+      { clientType: 'WEB' },
+      reply as unknown as FastifyReply,
+    );
+    const stateCookie = reply.setCookie.mock.calls[0]?.[1] as string;
+    const request = {
+      cookies: {
+        [oauthStateCookieName('GOOGLE')]: stateCookie,
+      },
+      url: '/api/v1/oauth/google/callback?state=oauth-state&code=code',
+    } as unknown as FastifyRequest;
+
+    await expect(
+      controller.googleCallback(request, reply as unknown as FastifyReply),
+    ).resolves.toEqual({
+      verificationRequired: true,
+      code: 'account_link_required',
+      provider: 'GOOGLE',
+      message:
+        'A one-time verification code has been sent to your email address.',
+    });
   });
 });

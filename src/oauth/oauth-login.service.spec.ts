@@ -18,8 +18,11 @@ const createService = (overrides?: {
   stateRepository?: Partial<OAuthStateRepository>;
   identityRepository?: Partial<OAuthIdentitiesRepository>;
   userRepository?: Partial<UsersRepository>;
+  emailProvider?: Partial<EmailProvider>;
+  oauthLinkChallengeRepository?: Partial<OAuthLinkChallengeRepository>;
   sessionService?: Partial<SessionService>;
   googleProvider?: Partial<GoogleOauthProvider>;
+  otpService?: Partial<OtpService>;
 }) =>
   new OAuthLoginService(
     {
@@ -29,13 +32,13 @@ const createService = (overrides?: {
     overrides?.identityRepository as OAuthIdentitiesRepository,
     {} as UnitOfWork,
     overrides?.userRepository as UsersRepository,
-    {} as EmailProvider,
-    {} as OAuthLinkChallengeRepository,
+    overrides?.emailProvider as EmailProvider,
+    overrides?.oauthLinkChallengeRepository as OAuthLinkChallengeRepository,
     overrides?.sessionService as SessionService,
     overrides?.googleProvider as GoogleOauthProvider,
     {} as GithubOauthProvider,
     {} as IdentityLinkingService,
-    {} as OtpService,
+    overrides?.otpService as OtpService,
   );
 
 describe('OAuthLoginService callback redirect URI', () => {
@@ -110,6 +113,67 @@ describe('OAuthLoginService callback redirect URI', () => {
     };
     expect(exchangeInput.callbackUrl.toString()).toBe(
       `${redirectUri}?state=oauth-state&code=oauth-code&scope=email`,
+    );
+  });
+
+  it('returns a link-required result after sending an OTP for an existing email', async () => {
+    const consume = vi.fn().mockResolvedValue({
+      id: 'oauth-state-id',
+      provider: 'GOOGLE',
+      intent: 'LOGIN',
+      nonce: null,
+      pkceVerifier: null,
+      redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
+      clientType: 'WEB',
+      linkingUserId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      consumedAt: new Date(),
+    });
+    const exchangeAndVerify = vi.fn().mockResolvedValue({
+      providerSubject: 'google-subject',
+      email: 'user@example.com',
+    });
+    const createChallenge = vi.fn().mockResolvedValue(undefined);
+    const send = vi.fn().mockResolvedValue(undefined);
+    const service = createService({
+      stateRepository: { consume },
+      identityRepository: {
+        findUserIdByProviderSubject: vi.fn().mockResolvedValue(null),
+      },
+      userRepository: {
+        getUserByNormalizedEmail: vi.fn().mockResolvedValue({
+          id: 'existing-user-id',
+          primaryEmail: { display: 'user@example.com' },
+        }),
+      },
+      emailProvider: { send },
+      oauthLinkChallengeRepository: { create: createChallenge },
+      googleProvider: { exchangeAndVerify },
+      otpService: {
+        generate: vi.fn().mockReturnValue('123456'),
+        hash: vi.fn().mockReturnValue('otp-hash'),
+      },
+    });
+
+    await expect(
+      service.handleCallback(
+        'GOOGLE',
+        new URL(
+          'https://api.example.com/api/v1/oauth/google/callback?state=oauth-state&code=oauth-code',
+        ),
+      ),
+    ).resolves.toEqual({ kind: 'link_required', provider: 'GOOGLE' });
+
+    expect(createChallenge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'existing-user-id',
+        provider: 'GOOGLE',
+        providerSubject: 'google-subject',
+        otpHash: 'otp-hash',
+      }),
+    );
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'user@example.com' }),
     );
   });
 });

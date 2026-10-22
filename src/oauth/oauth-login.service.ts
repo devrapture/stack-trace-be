@@ -42,7 +42,8 @@ const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes — this flow should co
 
 export type OAuthCallbackResult =
   | { kind: 'session'; session: IssuedSession }
-  | { kind: 'linked'; provider: OAuthProviderName };
+  | { kind: 'linked'; provider: OAuthProviderName }
+  | { kind: 'link_required'; provider: OAuthProviderName };
 
 @Injectable()
 export class OAuthLoginService {
@@ -138,6 +139,8 @@ export class OAuthLoginService {
     }
 
     const user = await this.resolveOrCreateUser(provider, profile);
+    if (!user) return { kind: 'link_required', provider };
+
     const session = await this.sessionService.createSession(user.id, {
       clientType: stateRecord.clientType,
     });
@@ -185,11 +188,7 @@ export class OAuthLoginService {
         profile,
         existingUserByEmail.primaryEmail?.display ?? profile.email,
       );
-      throw new AppError(
-        ErrorCode.ACCOUNT_LINK_REQUIRED,
-        'Additional verification is required to link to this sign-in method',
-        HttpStatus.CONFLICT,
-      );
+      return null;
     }
 
     return this.unitOfWork.run(async (tx) => {
