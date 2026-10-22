@@ -75,6 +75,7 @@ model User {
   emailVerificationChallenges  EmailVerificationChallenge[]
   passwordResetChallenge       PasswordResetChallenge[]
   oauthStates                  OAuthState[]
+  oauthLinkChallenges          OAuthLinkChallenge[]
   auditLogsAsSubject           AuditLog[]                   @relation("AuditLogSubject")
   auditLogsAsActor             AuditLog[]                   @relation("AuditLogActor")
 
@@ -208,6 +209,25 @@ model OAuthState {
 
   @@index([expiresAt])
   @@map("oauth_states")
+}
+
+model OAuthLinkChallenge {
+  id              Uuid                 @id @default(uuid())
+  userId          Uuid                 @map("user_id")
+  provider        OAuthProviderType
+  providerSubject String               @map("provider_subject")
+  otpHash         String               @map("otp_hash")
+  expiresAt       Timestamptz(3)       @map("expires_at")
+  attemptCount    Int                  @default(0) @map("attempt_count")
+  maxAttempts     Int                  @default(5) @map("max_attempts")
+  consumedAt      Timestamptz(3)?      @map("consumed_at")
+  updatedAt       temporal.updatedAt() @map("updated_at")
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       Timestamptz(3)       @map("created_at") @default(now())
+
+  @@index([userId])
+  @@map("oauth_link_challenges")
 }
 
 model AuditLog {

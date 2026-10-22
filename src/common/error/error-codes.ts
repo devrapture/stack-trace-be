@@ -22,6 +22,12 @@ export const ErrorCode = {
   OAUTH_STATE_INVALID: 'oauth_state_invalid',
   GITHUB_EMAIL_UNAVAILABLE: 'github_email_unavailable',
   INSUFFICIENT_PERMISSION: 'insufficient_permission',
+  PROVIDER_ALREADY_LINKED: 'provider_already_linked',
+  OAUTH_IDENTITY_ALREADY_LINKED: 'oauth_identity_already_linked',
+  PROVIDER_NOT_LINKED: 'provider_not_linked',
+  CANNOT_REMOVE_LAST_AUTH_METHOD: 'cannot_remove_last_auth_method',
+  OTP_VERIFICATION_FAILED: 'otp_verification_failed',
+  OTP_TOO_MANY_ATTEMPTS: 'otp_too_many_attempts',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

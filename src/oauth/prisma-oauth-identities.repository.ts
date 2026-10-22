@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionClient } from '../prisma/db.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { OAuthIdentitiesRepository } from './oauth-identities.repository.js';
+import {
+  LinkedOAuthIdentity,
+  OAuthIdentitiesRepository,
+} from './oauth-identities.repository.js';
 import { OAuthProviderName } from './oauth-state.repository.js';
 
 @Injectable()
@@ -33,5 +36,39 @@ export class PrismaOAuthIdentitiesRepository implements OAuthIdentitiesRepositor
       provider,
       providerSubject,
     });
+  }
+
+  async listForUser(
+    userId: string,
+    tx?: TransactionClient,
+  ): Promise<LinkedOAuthIdentity[]> {
+    const client = tx ?? this.prisma.db;
+    const row = await client.orm.public.AuthIdentity.where({ userId })
+      .where((identity) => identity.provider.in(['GOOGLE', 'GITHUB']))
+      .select('provider', 'providerSubject', 'createdAt')
+      .all();
+    return row.flatMap((r): LinkedOAuthIdentity[] => {
+      if (r.provider === 'PASSWORD' || r.providerSubject === null) return [];
+
+      return [
+        {
+          provider: r.provider,
+          providerSubject: r.providerSubject,
+          createdAt: new Date(r.createdAt.epochMilliseconds),
+        },
+      ];
+    });
+  }
+
+  async deleteForUser(
+    userId: string,
+    provider: OAuthProviderName,
+    tx?: TransactionClient,
+  ): Promise<void> {
+    const client = tx ?? this.prisma.db;
+    await client.orm.public.AuthIdentity.where({
+      userId,
+      provider,
+    }).deleteAll();
   }
 }

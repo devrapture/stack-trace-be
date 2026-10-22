@@ -99,3 +99,32 @@ describe('PrismaUserRepository.createWithPrimaryEmailAndPassword', () => {
     await expect(createWithError(error)).rejects.toBe(error);
   });
 });
+
+describe('PrismaUserRepository.lockForUpdate', () => {
+  it('locks the user row on the supplied transaction', async () => {
+    const lockQuery = {};
+    const sql = vi.fn().mockReturnValue({
+      returnsRow: vi.fn().mockReturnValue({
+        build: vi.fn().mockReturnValue(lockQuery),
+      }),
+    });
+    const query = vi.fn(async function* () {
+      yield { id: 'user-id' };
+    });
+    const prisma = {
+      db: {
+        raw: { sql },
+      },
+    } as unknown as PrismaService;
+    const repository = new PrismaUserRepository(prisma);
+
+    await repository.lockForUpdate('user-id', { query } as never);
+
+    expect(query).toHaveBeenCalledWith(lockQuery);
+    const [parts, userId] = sql.mock.calls[0] as [TemplateStringsArray, string];
+    expect(parts.join('?')).toMatch(
+      /SELECT id FROM users WHERE id = \? FOR UPDATE/,
+    );
+    expect(userId).toBe('user-id');
+  });
+});

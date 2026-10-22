@@ -23,6 +23,7 @@ export interface UsersRepository {
     normalizedEmail: string,
   ): Promise<UserProfile | null>;
   getUserById(userId: string): Promise<UserProfile | null>;
+  lockForUpdate(userId: string, tx: TransactionClient): Promise<void>;
   findByPublicId(publicId: string): Promise<UserProfile | null>;
   updateDisplayName(id: string, displayName: string): Promise<UserProfile>;
 }

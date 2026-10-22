@@ -4,7 +4,11 @@ import { OAuthProviderName } from './oauth-state.repository.js';
 export const OAUTH_IDENTITIES_REPOSITORY = Symbol(
   'OAUTH_IDENTITIES_REPOSITORY',
 );
-
+export interface LinkedOAuthIdentity {
+  provider: OAuthProviderName;
+  providerSubject: string;
+  createdAt: Date;
+}
 export interface OAuthIdentitiesRepository {
   findUserIdByProviderSubject(
     provider: OAuthProviderName,
@@ -15,6 +19,17 @@ export interface OAuthIdentitiesRepository {
     userId: string,
     provider: OAuthProviderName,
     providerSubject: string,
+    tx?: TransactionClient,
+  ): Promise<void>;
+
+  listForUser(
+    userId: string,
+    tx?: TransactionClient,
+  ): Promise<LinkedOAuthIdentity[]>;
+
+  deleteForUser(
+    userId: string,
+    provider: OAuthProviderName,
     tx?: TransactionClient,
   ): Promise<void>;
 }
