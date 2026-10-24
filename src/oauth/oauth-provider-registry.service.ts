@@ -21,7 +21,7 @@ export class OAuthProviderRegistry {
   }
 
   redirectUriFor(provider: OAuthProviderName): string {
-    const base = this.config.publicBaseUrl;
+    const base = this.config.publicBaseUrl.replace(/\/+$/, '');
     return `${base}/api/v1/oauth/${provider.toLowerCase()}/callback`;
   }
 }

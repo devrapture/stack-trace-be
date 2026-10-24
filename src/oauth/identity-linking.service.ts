@@ -41,6 +41,10 @@ import {
 } from './oauth-state.repository.js';
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const PROVIDER_DISPLAY_NAME: Record<OAuthProviderName, string> = {
+  GOOGLE: 'Google',
+  GITHUB: 'GitHub',
+};
 
 @Injectable()
 export class IdentityLinkingService {
@@ -149,7 +153,7 @@ export class IdentityLinkingService {
     const user =
       await this.userRepository.getUserByNormalizedEmail(normalizedEmail);
 
-    if (!user)
+    if (!user || user.status !== 'ACTIVE')
       throw new AppError(
         ErrorCode.OTP_VERIFICATION_FAILED,
         'That code is invalid or has expired. Request a new one.',
@@ -334,14 +338,17 @@ export class IdentityLinkingService {
         tx,
       );
 
-      await this.auditLogRepository.record({
-        userId,
-        eventType: 'PROVIDER_LINKED',
-        metadata: {
-          provider,
-          via: 'explicit_link',
+      await this.auditLogRepository.record(
+        {
+          userId,
+          eventType: 'PROVIDER_LINKED',
+          metadata: {
+            provider,
+            via: 'explicit_link',
+          },
         },
-      });
+        tx,
+      );
     });
 
     await this.sendProviderChangeNotificationBestEffort(
@@ -368,7 +375,7 @@ export class IdentityLinkingService {
         to,
         ...accountEmail({
           type: notification,
-          provider,
+          provider: PROVIDER_DISPLAY_NAME[provider],
         }),
       });
     } catch (error) {

@@ -19,10 +19,15 @@ import {
 } from '../users/users.repository.js';
 import { GithubOauthProvider } from './github-oauth.provider.js';
 import { GoogleOauthProvider } from './google-oauth.provider.js';
+import { IdentityLinkingService } from './identity-linking.service.js';
 import {
   OAUTH_IDENTITIES_REPOSITORY,
   type OAuthIdentitiesRepository,
 } from './oauth-identities.repository.js';
+import {
+  OAUTH_LINK_CHALLENGE_REPOSITORY,
+  type OAuthLinkChallengeRepository,
+} from './oauth-link-challenge.repository.js';
 import {
   OAuthProviderAdapter,
   VerifiedOAuthProfile,
@@ -32,11 +37,6 @@ import {
   OAuthProviderName,
   type OAuthStateRepository,
 } from './oauth-state.repository.js';
-import { IdentityLinkingService } from './identity-linking.service.js';
-import {
-  OAUTH_LINK_CHALLENGE_REPOSITORY,
-  type OAuthLinkChallengeRepository,
-} from './oauth-link-challenge.repository.js';
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes — this flow should complete in one browser round-trip
 
@@ -181,6 +181,14 @@ export class OAuthLoginService {
     const existingUserByEmail =
       await this.userRepository.getUserByNormalizedEmail(normalizedEmail);
     if (existingUserByEmail) {
+      if (existingUserByEmail.status !== 'ACTIVE') {
+        throw new AppError(
+          ErrorCode.ACCOUNT_LINK_REQUIRED,
+          'Additional verification is required to link to this sign-in method',
+          HttpStatus.CONFLICT,
+        );
+      }
+
       // A DIFFERENT identity already owns this email (a password account,  or a different OAuth provider)
       await this.issueLinkChallenge(
         existingUserByEmail.id,
