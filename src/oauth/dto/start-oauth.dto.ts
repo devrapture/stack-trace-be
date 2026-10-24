@@ -6,5 +6,5 @@ import {
 
 export class StartOAuthDto {
   @IsIn(CLIENT_TYPES)
-  clientType!: SessionClientTypeName;
+  clientType: SessionClientTypeName;
 }

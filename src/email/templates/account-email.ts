@@ -10,6 +10,13 @@ export type AccountEmailOptions = AccountEmailBaseOptions &
         type: 'registration_otp' | 'password_reset_otp';
         otp: string;
         expiresInMinutes: number;
+        provider?: never;
+      }
+    | {
+        type: 'oauth_link_challenge_otp';
+        provider: string;
+        otp: string;
+        expiresInMinutes: number;
       }
     | {
         type:
@@ -17,6 +24,12 @@ export type AccountEmailOptions = AccountEmailBaseOptions &
           | 'existing_account_notice'
           | 'oauth_only_account_notice'
           | 'unverified_account_password_reset_notice';
+        otp?: never;
+        expiresInMinutes?: never;
+      }
+    | {
+        type: 'provider_linked' | 'provider_unlinked';
+        provider: string;
         otp?: never;
         expiresInMinutes?: never;
       }
@@ -150,7 +163,64 @@ const CONTENT = {
     footer:
       'You received this notice because a password reset was requested for an unverified Stack Trace account using this email address.',
   },
-} satisfies Record<AccountEmailOptions['type'], AccountEmailContent>;
+} satisfies Record<
+  Exclude<
+    AccountEmailOptions['type'],
+    'oauth_link_challenge_otp' | 'provider_linked' | 'provider_unlinked'
+  >,
+  AccountEmailContent
+>;
+
+const oauthLinkChallengeOtpContent = (
+  provider: string,
+): AccountEmailContent => ({
+  subject: `Confirm linking your ${provider} account to Stack Trace`,
+  preheader: `Use your confirmation code to link your ${provider} account to Stack Trace.`,
+  eyebrow: 'ACCOUNT SECURITY',
+  headline: `Confirm your ${provider} sign-in.`,
+  paragraphs: [
+    `Someone just tried to sign in to Stack Trace with ${provider} using this email address.`,
+  ],
+  actionHeading: `Link your ${provider} account.`,
+  instructions: `If this was you and you'd like to link your ${provider} account, enter this code in Stack Trace.`,
+  codeLabel: 'YOUR ACCOUNT LINK CODE',
+  securityNote:
+    "Never share this code with anyone. If this wasn't you, you can safely ignore this email — nothing will be linked.",
+  closing: 'Take care,',
+  footer: `You received this security notification because someone tried to link a ${provider} sign-in method to your Stack Trace account.`,
+});
+
+const providerLinkedContent = (provider: string): AccountEmailContent => ({
+  subject: `${provider} linked to your Stack Trace account`,
+  preheader: `Your ${provider} account is now linked to Stack Trace.`,
+  eyebrow: 'ACCOUNT SECURITY',
+  headline: `${provider} is now linked.`,
+  paragraphs: [
+    `Your ${provider} account is now linked — you can sign in with it going forward.`,
+  ],
+  actionHeading: 'Was this you?',
+  instructions: `If you linked your ${provider} account, you’re all set.`,
+  securityNote:
+    "If this wasn't you, remove it from your account's linked sign-in methods immediately.",
+  closing: 'Take care,',
+  footer: `You received this security notification because a ${provider} sign-in method was linked to your Stack Trace account.`,
+});
+
+const providerUnlinkedContent = (provider: string): AccountEmailContent => ({
+  subject: `${provider} unlinked from your Stack Trace account`,
+  preheader: `Your ${provider} account has been unlinked from Stack Trace.`,
+  eyebrow: 'ACCOUNT SECURITY',
+  headline: `${provider} is no longer linked.`,
+  paragraphs: [
+    `Your ${provider} account has been unlinked and can no longer be used to sign in.`,
+  ],
+  actionHeading: 'Was this you?',
+  instructions: `If you unlinked your ${provider} account, no further action is needed.`,
+  securityNote:
+    "If this wasn't you, sign in with your remaining method and review your account.",
+  closing: 'Take care,',
+  footer: `You received this security notification because a ${provider} sign-in method was unlinked from your Stack Trace account.`,
+});
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => {
@@ -170,7 +240,14 @@ export const accountEmail = (
 ): Pick<EmailMessage, 'subject' | 'text'> & {
   html: string;
 } => {
-  const content: AccountEmailContent = CONTENT[options.type];
+  const content: AccountEmailContent =
+    options.type === 'oauth_link_challenge_otp'
+      ? oauthLinkChallengeOtpContent(options.provider)
+      : options.type === 'provider_linked'
+        ? providerLinkedContent(options.provider)
+        : options.type === 'provider_unlinked'
+          ? providerUnlinkedContent(options.provider)
+          : CONTENT[options.type];
   const greeting = options.name?.trim()
     ? `Hi ${options.name.trim()},`
     : 'Hi there,';
@@ -179,7 +256,8 @@ export const accountEmail = (
 
   if (
     options.type === 'registration_otp' ||
-    options.type === 'password_reset_otp'
+    options.type === 'password_reset_otp' ||
+    options.type === 'oauth_link_challenge_otp'
   ) {
     const { otp, expiresInMinutes } = options;
     if (!Number.isFinite(expiresInMinutes) || expiresInMinutes <= 0) {

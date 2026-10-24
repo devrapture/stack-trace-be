@@ -53,6 +53,7 @@ import { AuditModule } from '../audit/audit.module.js';
     PASSWORD_CREDENTIALS_REPOSITORY,
     EMAIL_VERIFICATION_REPOSITORY,
     PASSWORD_RESET_REPOSITORY,
+    OtpService,
   ],
   controllers: [AuthController],
 })

@@ -142,6 +142,17 @@ export class PrismaUserRepository implements UsersRepository {
     return user ? mapToUserProfile(user) : null;
   }
 
+  async lockForUpdate(userId: string, tx: TransactionClient): Promise<void> {
+    const query = this.prisma.db.raw
+      .sql`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`
+      .returnsRow({ id: 'pg/uuid@1' })
+      .build();
+
+    for await (const _row of tx.query(query)) {
+      return;
+    }
+  }
+
   async getUserByNormalizedEmail(
     normalizedEmail: string,
   ): Promise<UserProfile | null> {

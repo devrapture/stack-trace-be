@@ -51,6 +51,25 @@ describe('accountEmail', () => {
     }
   });
 
+  it('renders an OAuth link challenge with the provider, code, and expiry', () => {
+    const email = accountEmail({
+      type: 'oauth_link_challenge_otp',
+      provider: 'GitHub',
+      otp: '654321',
+      expiresInMinutes: 10,
+    });
+
+    expect(email.subject).toBe(
+      'Confirm linking your GitHub account to Stack Trace',
+    );
+    for (const body of [email.html, email.text]) {
+      expect(body).toContain('GitHub');
+      expect(body).toContain('654321');
+      expect(body).toContain('10 minutes');
+      expect(body).toContain('nothing will be linked');
+    }
+  });
+
   it('renders a password change notification without a code or expiry', () => {
     const email = accountEmail({ type: 'password_changed' });
 
@@ -106,6 +125,43 @@ describe('accountEmail', () => {
       expect(body).toContain('No changes have been made to your account');
       expect(body).not.toMatch(/expires|copy the code/i);
     }
+  });
+
+  it('renders a provider-linked notice', () => {
+    const email = accountEmail({
+      type: 'provider_linked',
+      provider: 'GitHub',
+    });
+
+    expect(email.subject).toBe('GitHub linked to your Stack Trace account');
+    expect(email.html).not.toContain('class="otp"');
+    for (const body of [email.html, email.text]) {
+      expect(body).toContain('GitHub account is now linked');
+      expect(body).toContain('sign in with it going forward');
+      expect(body).toContain('linked sign-in methods immediately');
+      expect(body).not.toMatch(/expires|copy the code/i);
+    }
+    expect(email.text).toContain("If this wasn't you");
+    expect(email.html).toContain('If this wasn&#39;t you');
+  });
+
+  it('renders a provider-unlinked notice', () => {
+    const email = accountEmail({
+      type: 'provider_unlinked',
+      provider: 'GitHub',
+    });
+
+    expect(email.subject).toBe('GitHub unlinked from your Stack Trace account');
+    expect(email.html).not.toContain('class="otp"');
+    for (const body of [email.html, email.text]) {
+      expect(body).toContain('GitHub account has been unlinked');
+      expect(body).toContain('can no longer be used to sign in');
+      expect(body).toContain('sign in with your remaining method');
+      expect(body).toContain('review your account');
+      expect(body).not.toMatch(/expires|copy the code/i);
+    }
+    expect(email.text).toContain("If this wasn't you");
+    expect(email.html).toContain('If this wasn&#39;t you');
   });
 
   it('escapes names and codes in HTML while preserving plain text', () => {

@@ -14,7 +14,6 @@ import {
   AuditLogEntry,
   type AuditLogRepository,
 } from '../audit/audit-log.repository.js';
-import { JwtAuthGuard } from '../sessions/jwt-auth.guard.js';
 import { ListAuditLogsDto } from './dto/list-audit-logs.dto.js';
 import { PermissionsGuard } from './permissions.guard.js';
 import { RequirePermission } from './require-permission.decorator.js';
@@ -47,7 +46,7 @@ function parseCursor(cursor: string): AuditLogCursor {
 }
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(PermissionsGuard)
 export class AdminController {
   constructor(
     @Inject(AUDIT_LOG_REPOSITORY)

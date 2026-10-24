@@ -211,13 +211,14 @@ export class PrismaEmailVerificationRepository implements EmailVerificationChall
 
   async incrementAttempts(challengeId: string): Promise<boolean> {
     const query = this.prisma.db.raw.sql`
-    UPDATE email_verification_challenges
-        SET attempt_count = attempt_count + 1, updated_at = now()
-    WHERE id = ${challengeId}
-      AND consumed_at IS NULL
-      AND expires_at > now()
-      AND attempt_count < max_attempts
-  `
+      UPDATE email_verification_challenges
+      SET attempt_count = attempt_count + 1,
+          updated_at = now()
+      WHERE id = ${challengeId}
+        AND consumed_at IS NULL
+        AND expires_at > now()
+        AND attempt_count < max_attempts
+    `
       .affectedCount()
       .build();
 

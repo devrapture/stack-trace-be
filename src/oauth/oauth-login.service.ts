@@ -1,7 +1,14 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  OTP_MAX_ATTEMPTS,
+  OTP_TTL_MS,
+  OtpService,
+} from '../auth/email-verification/otp.service.js';
 import { AppError } from '../common/error/app-error.js';
 import { ErrorCode } from '../common/error/error-codes.js';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
+import { EMAIL_PROVIDER, type EmailProvider } from '../email/email-provider.js';
+import { accountEmail } from '../email/templates/account-email.js';
 import { UNIT_OF_WORK, type UnitOfWork } from '../prisma/unit-of-work.js';
 import type { SessionClientTypeName } from '../sessions/session-client-type.js';
 import { IssuedSession, SessionService } from '../sessions/session.service.js';
@@ -12,10 +19,15 @@ import {
 } from '../users/users.repository.js';
 import { GithubOauthProvider } from './github-oauth.provider.js';
 import { GoogleOauthProvider } from './google-oauth.provider.js';
+import { IdentityLinkingService } from './identity-linking.service.js';
 import {
   OAUTH_IDENTITIES_REPOSITORY,
   type OAuthIdentitiesRepository,
 } from './oauth-identities.repository.js';
+import {
+  OAUTH_LINK_CHALLENGE_REPOSITORY,
+  type OAuthLinkChallengeRepository,
+} from './oauth-link-challenge.repository.js';
 import {
   OAuthProviderAdapter,
   VerifiedOAuthProfile,
@@ -27,6 +39,11 @@ import {
 } from './oauth-state.repository.js';
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes — this flow should complete in one browser round-trip
+
+export type OAuthCallbackResult =
+  | { kind: 'session'; session: IssuedSession }
+  | { kind: 'linked'; provider: OAuthProviderName }
+  | { kind: 'link_required'; provider: OAuthProviderName };
 
 @Injectable()
 export class OAuthLoginService {
@@ -41,9 +58,15 @@ export class OAuthLoginService {
     private readonly unitOfWork: UnitOfWork,
     @Inject(USERS_REPOSITORY)
     private readonly userRepository: UsersRepository,
+    @Inject(EMAIL_PROVIDER)
+    private readonly emailProvider: EmailProvider,
+    @Inject(OAUTH_LINK_CHALLENGE_REPOSITORY)
+    private readonly oauthLinkChallengeRepository: OAuthLinkChallengeRepository,
     private readonly sessionService: SessionService,
     private readonly googleProvider: GoogleOauthProvider,
     private readonly githubProvider: GithubOauthProvider,
+    private readonly identityLinkingService: IdentityLinkingService,
+    private readonly otpService: OtpService,
   ) {}
   async start(
     provider: OAuthProviderName,
@@ -72,7 +95,7 @@ export class OAuthLoginService {
   async handleCallback(
     provider: OAuthProviderName,
     callbackUrl: URL,
-  ): Promise<IssuedSession> {
+  ): Promise<OAuthCallbackResult> {
     const stateParam = callbackUrl.searchParams.get('state');
     if (!stateParam)
       throw new AppError(
@@ -107,10 +130,22 @@ export class OAuthLoginService {
       ...(stateRecord.nonce !== null ? { nonce: stateRecord.nonce } : {}),
     });
 
+    if (stateRecord.intent === 'LINK') {
+      await this.identityLinkingService.completeExplicitLink(
+        stateRecord,
+        profile,
+      );
+      return { kind: 'linked', provider };
+    }
+
     const user = await this.resolveOrCreateUser(provider, profile);
-    return this.sessionService.createSession(user.id, {
+    if (!user) return { kind: 'link_required', provider };
+
+    const session = await this.sessionService.createSession(user.id, {
       clientType: stateRecord.clientType,
     });
+
+    return { kind: 'session', session };
   }
 
   private adapterFor(provider: OAuthProviderName): OAuthProviderAdapter {
@@ -146,12 +181,22 @@ export class OAuthLoginService {
     const existingUserByEmail =
       await this.userRepository.getUserByNormalizedEmail(normalizedEmail);
     if (existingUserByEmail) {
+      if (existingUserByEmail.status !== 'ACTIVE') {
+        throw new AppError(
+          ErrorCode.ACCOUNT_LINK_REQUIRED,
+          'Additional verification is required to link to this sign-in method',
+          HttpStatus.CONFLICT,
+        );
+      }
+
       // A DIFFERENT identity already owns this email (a password account,  or a different OAuth provider)
-      throw new AppError(
-        ErrorCode.ACCOUNT_LINK_REQUIRED,
-        'Additional verification is required to link to this sign-in method',
-        HttpStatus.CONFLICT,
+      await this.issueLinkChallenge(
+        existingUserByEmail.id,
+        provider,
+        profile,
+        existingUserByEmail.primaryEmail?.display ?? profile.email,
       );
+      return null;
     }
 
     return this.unitOfWork.run(async (tx) => {
@@ -170,6 +215,35 @@ export class OAuthLoginService {
       );
 
       return newUser;
+    });
+  }
+
+  private async issueLinkChallenge(
+    existingUserId: string,
+    provider: OAuthProviderName,
+    profile: VerifiedOAuthProfile,
+    existingUserEmail: string,
+  ): Promise<void> {
+    const otp = this.otpService.generate();
+    const otpHash = this.otpService.hash(otp);
+
+    await this.oauthLinkChallengeRepository.create({
+      userId: existingUserId,
+      provider,
+      providerSubject: profile.providerSubject,
+      otpHash,
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+      maxAttempts: OTP_MAX_ATTEMPTS,
+    });
+
+    await this.emailProvider.send({
+      to: existingUserEmail,
+      ...accountEmail({
+        type: 'oauth_link_challenge_otp',
+        provider,
+        otp,
+        expiresInMinutes: OTP_TTL_MS / 60_000,
+      }),
     });
   }
 }
