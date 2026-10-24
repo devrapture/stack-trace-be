@@ -25,7 +25,9 @@ import { ConfirmLinkDto } from './dto/confirm-link.dto.js';
 import { LinkedMethodDto } from './dto/linked-method.dto.js';
 import {
   OAUTH_IDENTITIES_REPOSITORY,
+  OAuthIdentityAlreadyLinkedError,
   type OAuthIdentitiesRepository,
+  OAuthProviderAlreadyLinkedError,
 } from './oauth-identities.repository.js';
 import {
   OAUTH_LINK_CHALLENGE_REPOSITORY,
@@ -203,34 +205,38 @@ export class IdentityLinkingService {
       );
     }
 
-    await this.unitOfWork.run(async (tx) => {
-      const consumed = await this.oauthLinkChallengeRepository.markConsumed(
-        challenge.id,
-        tx,
-      );
-      if (!consumed)
-        throw new AppError(
-          ErrorCode.OTP_VERIFICATION_FAILED,
-          'That code is invalid or has expired. Request a new one.',
-          HttpStatus.BAD_REQUEST,
+    try {
+      await this.unitOfWork.run(async (tx) => {
+        const consumed = await this.oauthLinkChallengeRepository.markConsumed(
+          challenge.id,
+          tx,
+        );
+        if (!consumed)
+          throw new AppError(
+            ErrorCode.OTP_VERIFICATION_FAILED,
+            'That code is invalid or has expired. Request a new one.',
+            HttpStatus.BAD_REQUEST,
+          );
+
+        await this.oauthIdentitiesRepository.createForUser(
+          user.id,
+          challenge.provider,
+          challenge.providerSubject,
+          tx,
         );
 
-      await this.oauthIdentitiesRepository.createForUser(
-        user.id,
-        challenge.provider,
-        challenge.providerSubject,
-        tx,
-      );
-
-      await this.auditLogRepository.record(
-        {
-          userId: user.id,
-          eventType: 'PROVIDER_LINKED',
-          metadata: { provider: challenge.provider, via: 'email_challenge' },
-        },
-        tx,
-      );
-    });
+        await this.auditLogRepository.record(
+          {
+            userId: user.id,
+            eventType: 'PROVIDER_LINKED',
+            metadata: { provider: challenge.provider, via: 'email_challenge' },
+          },
+          tx,
+        );
+      });
+    } catch (error: unknown) {
+      this.throwIdentityConflict(error, challenge.provider);
+    }
 
     await this.sendProviderChangeNotificationBestEffort(
       user.id,
@@ -330,32 +336,57 @@ export class IdentityLinkingService {
         HttpStatus.CONFLICT,
       );
 
-    await this.unitOfWork.run(async (tx) => {
-      await this.oauthIdentitiesRepository.createForUser(
-        userId,
-        provider,
-        providerSubject,
-        tx,
-      );
-
-      await this.auditLogRepository.record(
-        {
+    try {
+      await this.unitOfWork.run(async (tx) => {
+        await this.oauthIdentitiesRepository.createForUser(
           userId,
-          eventType: 'PROVIDER_LINKED',
-          metadata: {
-            provider,
-            via: 'explicit_link',
+          provider,
+          providerSubject,
+          tx,
+        );
+
+        await this.auditLogRepository.record(
+          {
+            userId,
+            eventType: 'PROVIDER_LINKED',
+            metadata: {
+              provider,
+              via: 'explicit_link',
+            },
           },
-        },
-        tx,
-      );
-    });
+          tx,
+        );
+      });
+    } catch (error: unknown) {
+      this.throwIdentityConflict(error, provider);
+    }
 
     await this.sendProviderChangeNotificationBestEffort(
       userId,
       provider,
       'provider_linked',
     );
+  }
+
+  private throwIdentityConflict(
+    error: unknown,
+    provider: OAuthProviderName,
+  ): never {
+    if (error instanceof OAuthProviderAlreadyLinkedError)
+      throw new AppError(
+        ErrorCode.PROVIDER_ALREADY_LINKED,
+        `This account already has a ${provider} sign-in method linked.`,
+        HttpStatus.CONFLICT,
+      );
+
+    if (error instanceof OAuthIdentityAlreadyLinkedError)
+      throw new AppError(
+        ErrorCode.OAUTH_IDENTITY_ALREADY_LINKED,
+        `This ${provider} account is already linked to a different Stack Trace account`,
+        HttpStatus.CONFLICT,
+      );
+
+    throw error;
   }
 
   private async sendProviderChangeNotificationBestEffort(

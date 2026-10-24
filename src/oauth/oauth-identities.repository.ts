@@ -4,6 +4,23 @@ import { OAuthProviderName } from './oauth-state.repository.js';
 export const OAUTH_IDENTITIES_REPOSITORY = Symbol(
   'OAUTH_IDENTITIES_REPOSITORY',
 );
+
+export class OAuthProviderAlreadyLinkedError extends Error {
+  constructor() {
+    super('This user already has an identity for this OAuth provider.');
+    this.name = 'OAuthProviderAlreadyLinkedError';
+    Error.captureStackTrace?.(this, OAuthProviderAlreadyLinkedError);
+  }
+}
+
+export class OAuthIdentityAlreadyLinkedError extends Error {
+  constructor() {
+    super('This OAuth identity is already linked to a user.');
+    this.name = 'OAuthIdentityAlreadyLinkedError';
+    Error.captureStackTrace?.(this, OAuthIdentityAlreadyLinkedError);
+  }
+}
+
 export interface LinkedOAuthIdentity {
   provider: OAuthProviderName;
   providerSubject: string;

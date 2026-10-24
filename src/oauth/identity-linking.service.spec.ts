@@ -1,6 +1,10 @@
 import { vi } from 'vitest';
 import { ErrorCode } from '../common/error/error-codes.js';
 import { IdentityLinkingService } from './identity-linking.service.js';
+import {
+  OAuthIdentityAlreadyLinkedError,
+  OAuthProviderAlreadyLinkedError,
+} from './oauth-identities.repository.js';
 
 describe('IdentityLinkingService explicit linking', () => {
   it('persists and returns the generated state before completing', async () => {
@@ -228,6 +232,7 @@ describe('IdentityLinkingService post-link notifications', () => {
     const tx = { kind: 'transaction' };
     const user = {
       id: 'user-id',
+      status: 'ACTIVE',
       primaryEmail: { display: 'user@example.com' },
     };
     const challenge = {
@@ -279,6 +284,7 @@ describe('IdentityLinkingService post-link notifications', () => {
       issuedSession,
       createForUser,
       createSession,
+      record,
       send,
       logger,
     };
@@ -333,4 +339,65 @@ describe('IdentityLinkingService post-link notifications', () => {
       'Provider change succeeded, but the notification email failed',
     );
   });
+
+  it.each([
+    [new OAuthProviderAlreadyLinkedError(), ErrorCode.PROVIDER_ALREADY_LINKED],
+    [
+      new OAuthIdentityAlreadyLinkedError(),
+      ErrorCode.OAUTH_IDENTITY_ALREADY_LINKED,
+    ],
+  ])(
+    'maps a confirm-link identity conflict to %s',
+    async (conflict, expectedCode) => {
+      const { service, createForUser, createSession, record } = createService();
+      createForUser.mockRejectedValueOnce(conflict);
+
+      await expect(
+        service.confirmLink({
+          email: 'user@example.com',
+          otp: '123456',
+          clientType: 'WEB',
+        }),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          code: expectedCode,
+          httpStatus: 409,
+        }),
+      );
+
+      expect(record).not.toHaveBeenCalled();
+      expect(createSession).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [new OAuthProviderAlreadyLinkedError(), ErrorCode.PROVIDER_ALREADY_LINKED],
+    [
+      new OAuthIdentityAlreadyLinkedError(),
+      ErrorCode.OAUTH_IDENTITY_ALREADY_LINKED,
+    ],
+  ])(
+    'maps an explicit-link identity conflict to %s',
+    async (conflict, expectedCode) => {
+      const { service, createForUser, record } = createService();
+      createForUser.mockRejectedValueOnce(conflict);
+
+      await expect(
+        service.completeExplicitLink(
+          {
+            linkingUserId: 'user-id',
+            provider: 'GOOGLE',
+          } as never,
+          { providerSubject: 'google-subject' } as never,
+        ),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          code: expectedCode,
+          httpStatus: 409,
+        }),
+      );
+
+      expect(record).not.toHaveBeenCalled();
+    },
+  );
 });

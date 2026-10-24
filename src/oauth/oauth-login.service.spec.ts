@@ -143,6 +143,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       userRepository: {
         getUserByNormalizedEmail: vi.fn().mockResolvedValue({
           id: 'existing-user-id',
+          status: 'ACTIVE',
           primaryEmail: { display: 'user@example.com' },
         }),
       },
