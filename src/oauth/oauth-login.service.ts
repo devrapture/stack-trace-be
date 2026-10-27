@@ -141,6 +141,13 @@ export class OAuthLoginService {
     const user = await this.resolveOrCreateUser(provider, profile);
     if (!user) return { kind: 'link_required', provider };
 
+    if (user.status !== 'ACTIVE')
+      throw new AppError(
+        ErrorCode.UNAUTHORIZED,
+        'Unable to sign in',
+        HttpStatus.UNAUTHORIZED,
+      );
+
     const session = await this.sessionService.createSession(user.id, {
       clientType: stateRecord.clientType,
     });
