@@ -1,5 +1,8 @@
+import { HttpStatus } from '@nestjs/common';
 import { vi } from 'vitest';
 import type { OtpService } from '../auth/email-verification/otp.service.js';
+import { AppError } from '../common/error/app-error.js';
+import { ErrorCode } from '../common/error/error-codes.js';
 import type { AppConfig } from '../config/app-config.js';
 import type { EmailProvider } from '../email/email-provider.js';
 import type { UnitOfWork } from '../prisma/unit-of-work.js';
@@ -83,7 +86,10 @@ describe('OAuthLoginService callback redirect URI', () => {
       email: 'user@example.com',
     });
     const findUserIdByProviderSubject = vi.fn().mockResolvedValue('user-id');
-    const getUserById = vi.fn().mockResolvedValue({ id: 'user-id' });
+    const getUserById = vi.fn().mockResolvedValue({
+      id: 'user-id',
+      status: 'ACTIVE',
+    });
     const issuedSession = {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -115,6 +121,53 @@ describe('OAuthLoginService callback redirect URI', () => {
       `${redirectUri}?state=oauth-state&code=oauth-code&scope=email`,
     );
   });
+
+  it.each(['PENDING', 'SUSPENDED', 'DELETED'] as const)(
+    'does not create a session for a %s user',
+    async (status) => {
+      const consume = vi.fn().mockResolvedValue({
+        id: 'oauth-state-id',
+        provider: 'GOOGLE',
+        intent: 'LOGIN',
+        nonce: null,
+        pkceVerifier: null,
+        redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
+        clientType: 'WEB',
+        linkingUserId: null,
+        expiresAt: new Date(Date.now() + 60_000),
+        consumedAt: new Date(),
+      });
+      const exchangeAndVerify = vi.fn().mockResolvedValue({
+        providerSubject: 'google-subject',
+        email: 'user@example.com',
+      });
+      const createSession = vi.fn();
+      const service = createService({
+        stateRepository: { consume },
+        identityRepository: {
+          findUserIdByProviderSubject: vi.fn().mockResolvedValue('user-id'),
+        },
+        userRepository: {
+          getUserById: vi.fn().mockResolvedValue({ id: 'user-id', status }),
+        },
+        sessionService: { createSession },
+        googleProvider: { exchangeAndVerify },
+      });
+
+      await expect(
+        service.handleCallback(
+          'GOOGLE',
+          new URL(
+            'https://api.example.com/api/v1/oauth/google/callback?state=oauth-state&code=oauth-code',
+          ),
+        ),
+      ).rejects.toMatchObject({
+        code: ErrorCode.UNAUTHORIZED,
+        httpStatus: HttpStatus.UNAUTHORIZED,
+      } satisfies Partial<AppError>);
+      expect(createSession).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns a link-required result after sending an OTP for an existing email', async () => {
     const consume = vi.fn().mockResolvedValue({
