@@ -5,21 +5,41 @@ import { AppError } from '../common/error/app-error.js';
 import { ErrorCode } from '../common/error/error-codes.js';
 import type { AppConfig } from '../config/app-config.js';
 import type { EmailProvider } from '../email/email-provider.js';
+import type { TransactionClient } from '../prisma/db.js';
 import type { UnitOfWork } from '../prisma/unit-of-work.js';
 import type { SessionService } from '../sessions/session.service.js';
-import type { UsersRepository } from '../users/users.repository.js';
+import {
+  UserEmailAlreadyExistsError,
+  type UsersRepository,
+} from '../users/users.repository.js';
 import type { GithubOauthProvider } from './github-oauth.provider.js';
 import type { GoogleOauthProvider } from './google-oauth.provider.js';
 import type { IdentityLinkingService } from './identity-linking.service.js';
-import type { OAuthIdentitiesRepository } from './oauth-identities.repository.js';
+import {
+  OAuthIdentityAlreadyLinkedError,
+  type OAuthIdentitiesRepository,
+} from './oauth-identities.repository.js';
 import type { OAuthLinkChallengeRepository } from './oauth-link-challenge.repository.js';
 import { OAuthLoginService } from './oauth-login.service.js';
 import type { OAuthStateRepository } from './oauth-state.repository.js';
+
+const createUnitOfWork = () => {
+  const runSpy = vi.fn();
+  const unitOfWork = {
+    run<T>(work: (tx: TransactionClient) => Promise<T>): Promise<T> {
+      runSpy();
+      return work({} as TransactionClient);
+    },
+  } satisfies UnitOfWork;
+
+  return { runSpy, unitOfWork };
+};
 
 const createService = (overrides?: {
   publicBaseUrl?: string;
   stateRepository?: Partial<OAuthStateRepository>;
   identityRepository?: Partial<OAuthIdentitiesRepository>;
+  unitOfWork?: UnitOfWork;
   userRepository?: Partial<UsersRepository>;
   emailProvider?: Partial<EmailProvider>;
   oauthLinkChallengeRepository?: Partial<OAuthLinkChallengeRepository>;
@@ -33,7 +53,7 @@ const createService = (overrides?: {
     } as AppConfig,
     overrides?.stateRepository as OAuthStateRepository,
     overrides?.identityRepository as OAuthIdentitiesRepository,
-    {} as UnitOfWork,
+    overrides?.unitOfWork as UnitOfWork,
     overrides?.userRepository as UsersRepository,
     overrides?.emailProvider as EmailProvider,
     overrides?.oauthLinkChallengeRepository as OAuthLinkChallengeRepository,
@@ -168,6 +188,207 @@ describe('OAuthLoginService callback redirect URI', () => {
       expect(createSession).not.toHaveBeenCalled();
     },
   );
+
+  it('recovers from a concurrent email creation by using the link flow', async () => {
+    const consume = vi.fn().mockResolvedValue({
+      id: 'oauth-state-id',
+      provider: 'GOOGLE',
+      intent: 'LOGIN',
+      nonce: null,
+      pkceVerifier: null,
+      redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
+      clientType: 'WEB',
+      linkingUserId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      consumedAt: new Date(),
+    });
+    const exchangeAndVerify = vi.fn().mockResolvedValue({
+      providerSubject: 'google-subject',
+      email: 'user@example.com',
+    });
+    const findUserIdByProviderSubject = vi.fn().mockResolvedValue(null);
+    const getUserByNormalizedEmail = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'winning-user-id',
+        status: 'ACTIVE',
+        primaryEmail: { display: 'user@example.com' },
+      });
+    const createChallenge = vi.fn().mockResolvedValue(undefined);
+    const send = vi.fn().mockResolvedValue(undefined);
+    const createSession = vi.fn();
+    const createWithPrimaryEmail = vi
+      .fn()
+      .mockRejectedValue(new UserEmailAlreadyExistsError());
+    const { runSpy, unitOfWork } = createUnitOfWork();
+    const service = createService({
+      stateRepository: { consume },
+      identityRepository: { findUserIdByProviderSubject },
+      unitOfWork,
+      userRepository: {
+        getUserByNormalizedEmail,
+        createWithPrimaryEmail,
+      },
+      emailProvider: { send },
+      oauthLinkChallengeRepository: { create: createChallenge },
+      sessionService: { createSession },
+      googleProvider: { exchangeAndVerify },
+      otpService: {
+        generate: vi.fn().mockReturnValue('123456'),
+        hash: vi.fn().mockReturnValue('otp-hash'),
+      },
+    });
+
+    await expect(
+      service.handleCallback(
+        'GOOGLE',
+        new URL(
+          'https://api.example.com/api/v1/oauth/google/callback?state=oauth-state&code=oauth-code',
+        ),
+      ),
+    ).resolves.toEqual({ kind: 'link_required', provider: 'GOOGLE' });
+
+    expect(runSpy).toHaveBeenCalledOnce();
+    expect(createWithPrimaryEmail).toHaveBeenCalledOnce();
+    expect(findUserIdByProviderSubject).toHaveBeenCalledTimes(2);
+    expect(getUserByNormalizedEmail).toHaveBeenCalledTimes(2);
+    expect(createChallenge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'winning-user-id',
+        provider: 'GOOGLE',
+        providerSubject: 'google-subject',
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it('recovers from a concurrent identity creation by using the winning user', async () => {
+    const consume = vi.fn().mockResolvedValue({
+      id: 'oauth-state-id',
+      provider: 'GOOGLE',
+      intent: 'LOGIN',
+      nonce: null,
+      pkceVerifier: null,
+      redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
+      clientType: 'WEB',
+      linkingUserId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      consumedAt: new Date(),
+    });
+    const exchangeAndVerify = vi.fn().mockResolvedValue({
+      providerSubject: 'google-subject',
+      email: 'user@example.com',
+    });
+    const findUserIdByProviderSubject = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('winning-user-id');
+    const getUserByNormalizedEmail = vi.fn().mockResolvedValue(null);
+    const getUserById = vi.fn().mockResolvedValue({
+      id: 'winning-user-id',
+      status: 'ACTIVE',
+    });
+    const issuedSession = {
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      sessionId: 'session-id',
+      refreshTokenExpiresAt: new Date(Date.now() + 60_000),
+      clientType: 'WEB' as const,
+    };
+    const createSession = vi.fn().mockResolvedValue(issuedSession);
+    const createWithPrimaryEmail = vi.fn().mockResolvedValue({
+      id: 'losing-user-id',
+      status: 'ACTIVE',
+    });
+    const createForUser = vi
+      .fn()
+      .mockRejectedValue(new OAuthIdentityAlreadyLinkedError());
+    const { runSpy, unitOfWork } = createUnitOfWork();
+    const service = createService({
+      stateRepository: { consume },
+      identityRepository: {
+        findUserIdByProviderSubject,
+        createForUser,
+      },
+      unitOfWork,
+      userRepository: {
+        getUserByNormalizedEmail,
+        getUserById,
+        createWithPrimaryEmail,
+      },
+      sessionService: { createSession },
+      googleProvider: { exchangeAndVerify },
+    });
+
+    await expect(
+      service.handleCallback(
+        'GOOGLE',
+        new URL(
+          'https://api.example.com/api/v1/oauth/google/callback?state=oauth-state&code=oauth-code',
+        ),
+      ),
+    ).resolves.toEqual({ kind: 'session', session: issuedSession });
+
+    expect(runSpy).toHaveBeenCalledOnce();
+    expect(createWithPrimaryEmail).toHaveBeenCalledOnce();
+    expect(createForUser).toHaveBeenCalledOnce();
+    expect(findUserIdByProviderSubject).toHaveBeenCalledTimes(2);
+    expect(getUserByNormalizedEmail).toHaveBeenCalledOnce();
+    expect(getUserById).toHaveBeenCalledWith('winning-user-id');
+    expect(createSession).toHaveBeenCalledWith('winning-user-id', {
+      clientType: 'WEB',
+    });
+  });
+
+  it('rethrows a creation conflict when the retry cannot find the winner', async () => {
+    const consume = vi.fn().mockResolvedValue({
+      id: 'oauth-state-id',
+      provider: 'GOOGLE',
+      intent: 'LOGIN',
+      nonce: null,
+      pkceVerifier: null,
+      redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
+      clientType: 'WEB',
+      linkingUserId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      consumedAt: new Date(),
+    });
+    const exchangeAndVerify = vi.fn().mockResolvedValue({
+      providerSubject: 'google-subject',
+      email: 'user@example.com',
+    });
+    const findUserIdByProviderSubject = vi.fn().mockResolvedValue(null);
+    const getUserByNormalizedEmail = vi.fn().mockResolvedValue(null);
+    const creationConflict = new UserEmailAlreadyExistsError();
+    const createWithPrimaryEmail = vi.fn().mockRejectedValue(creationConflict);
+    const { runSpy, unitOfWork } = createUnitOfWork();
+    const service = createService({
+      stateRepository: { consume },
+      identityRepository: { findUserIdByProviderSubject },
+      unitOfWork,
+      userRepository: {
+        getUserByNormalizedEmail,
+        createWithPrimaryEmail,
+      },
+      googleProvider: { exchangeAndVerify },
+    });
+
+    await expect(
+      service.handleCallback(
+        'GOOGLE',
+        new URL(
+          'https://api.example.com/api/v1/oauth/google/callback?state=oauth-state&code=oauth-code',
+        ),
+      ),
+    ).rejects.toBe(creationConflict);
+
+    expect(runSpy).toHaveBeenCalledOnce();
+    expect(createWithPrimaryEmail).toHaveBeenCalledOnce();
+    expect(findUserIdByProviderSubject).toHaveBeenCalledTimes(2);
+    expect(getUserByNormalizedEmail).toHaveBeenCalledTimes(2);
+  });
 
   it('returns a link-required result after sending an OTP for an existing email', async () => {
     const consume = vi.fn().mockResolvedValue({

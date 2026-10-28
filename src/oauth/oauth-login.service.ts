@@ -15,13 +15,16 @@ import { IssuedSession, SessionService } from '../sessions/session.service.js';
 import { normalizeEmail } from '../users/normalize-email.js';
 import {
   USERS_REPOSITORY,
+  UserEmailAlreadyExistsError,
   type UsersRepository,
 } from '../users/users.repository.js';
+import type { UserProfile } from '../users/user.model.js';
 import { GithubOauthProvider } from './github-oauth.provider.js';
 import { GoogleOauthProvider } from './google-oauth.provider.js';
 import { IdentityLinkingService } from './identity-linking.service.js';
 import {
   OAUTH_IDENTITIES_REPOSITORY,
+  OAuthIdentityAlreadyLinkedError,
   type OAuthIdentitiesRepository,
 } from './oauth-identities.repository.js';
 import {
@@ -44,6 +47,11 @@ export type OAuthCallbackResult =
   | { kind: 'session'; session: IssuedSession }
   | { kind: 'linked'; provider: OAuthProviderName }
   | { kind: 'link_required'; provider: OAuthProviderName };
+
+type ExistingUserResolution =
+  | { kind: 'user'; user: UserProfile }
+  | { kind: 'link_required' }
+  | { kind: 'not_found' };
 
 @Injectable()
 export class OAuthLoginService {
@@ -167,62 +175,84 @@ export class OAuthLoginService {
   private async resolveOrCreateUser(
     provider: OAuthProviderName,
     profile: VerifiedOAuthProfile,
-  ) {
-    const existingUser =
+  ): Promise<UserProfile | null> {
+    const existing = await this.resolveExistingUser(provider, profile);
+    if (existing.kind === 'user') return existing.user;
+    if (existing.kind === 'link_required') return null;
+
+    try {
+      return await this.unitOfWork.run(async (tx) => {
+        const newUser = await this.userRepository.createWithPrimaryEmail(
+          {
+            email: profile.email,
+          },
+          tx,
+        );
+
+        await this.identityRepository.createForUser(
+          newUser.id,
+          provider,
+          profile.providerSubject,
+          tx,
+        );
+
+        return newUser;
+      });
+    } catch (error: unknown) {
+      const isCreationConflict =
+        error instanceof UserEmailAlreadyExistsError ||
+        error instanceof OAuthIdentityAlreadyLinkedError;
+      if (!isCreationConflict) throw error;
+
+      const raced = await this.resolveExistingUser(provider, profile);
+      if (raced.kind === 'user') return raced.user;
+      if (raced.kind === 'link_required') return null;
+
+      throw error;
+    }
+  }
+
+  private async resolveExistingUser(
+    provider: OAuthProviderName,
+    profile: VerifiedOAuthProfile,
+  ): Promise<ExistingUserResolution> {
+    const existingUserId =
       await this.identityRepository.findUserIdByProviderSubject(
         provider,
         profile.providerSubject,
       );
 
-    if (existingUser) {
-      const user = await this.userRepository.getUserById(existingUser);
+    if (existingUserId) {
+      const user = await this.userRepository.getUserById(existingUserId);
       if (!user)
         throw new Error(
           `AuthIdentity for ${provider}:${profile.providerSubject} references a missing user.`,
         );
 
-      return user;
+      return { kind: 'user', user };
     }
 
     const { normalizedEmail } = normalizeEmail(profile.email);
     const existingUserByEmail =
       await this.userRepository.getUserByNormalizedEmail(normalizedEmail);
-    if (existingUserByEmail) {
-      if (existingUserByEmail.status !== 'ACTIVE') {
-        throw new AppError(
-          ErrorCode.ACCOUNT_LINK_REQUIRED,
-          'Additional verification is required to link to this sign-in method',
-          HttpStatus.CONFLICT,
-        );
-      }
+    if (!existingUserByEmail) return { kind: 'not_found' };
 
-      // A DIFFERENT identity already owns this email (a password account,  or a different OAuth provider)
-      await this.issueLinkChallenge(
-        existingUserByEmail.id,
-        provider,
-        profile,
-        existingUserByEmail.primaryEmail?.display ?? profile.email,
+    if (existingUserByEmail.status !== 'ACTIVE') {
+      throw new AppError(
+        ErrorCode.ACCOUNT_LINK_REQUIRED,
+        'Additional verification is required to link to this sign-in method',
+        HttpStatus.CONFLICT,
       );
-      return null;
     }
 
-    return this.unitOfWork.run(async (tx) => {
-      const newUser = await this.userRepository.createWithPrimaryEmail(
-        {
-          email: profile.email,
-        },
-        tx,
-      );
-
-      await this.identityRepository.createForUser(
-        newUser.id,
-        provider,
-        profile.providerSubject,
-        tx,
-      );
-
-      return newUser;
-    });
+    // A DIFFERENT identity already owns this email (a password account, or a different OAuth provider)
+    await this.issueLinkChallenge(
+      existingUserByEmail.id,
+      provider,
+      profile,
+      existingUserByEmail.primaryEmail?.display ?? profile.email,
+    );
+    return { kind: 'link_required' };
   }
 
   private async issueLinkChallenge(
