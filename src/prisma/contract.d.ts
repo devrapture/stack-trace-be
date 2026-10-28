@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'8e2c6af9915848a33da2eaea4d69e21f2e31b944841a0d9504d660d5f3d64fa3'>;
+  StorageHashBase<'b4e981c291150bcebb88c4daa0c533d99912f4fc5a6665e05a60efab45290f95'>;
 export type ExecutionHash =
   ExecutionHashBase<'95a81433725b602a304667655f1d5b66411675f1b0c0e9bf0619038b3773e50e'>;
 export type ProfileHash =
@@ -326,6 +326,7 @@ export type FieldOutputTypes = {
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly intent: 'LOGIN' | 'LINK';
+      readonly linkingSessionId: CodecTypes['pg/uuid@1']['output'] | null;
       readonly linkingUserId: CodecTypes['pg/uuid@1']['output'] | null;
       readonly nonce: CodecTypes['pg/text@1']['output'] | null;
       readonly pkceVerifier: CodecTypes['pg/text@1']['output'] | null;
@@ -454,6 +455,7 @@ export type FieldInputTypes = {
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly intent: 'LOGIN' | 'LINK';
+      readonly linkingSessionId: CodecTypes['pg/uuid@1']['input'] | null;
       readonly linkingUserId: CodecTypes['pg/uuid@1']['input'] | null;
       readonly nonce: CodecTypes['pg/text@1']['input'] | null;
       readonly pkceVerifier: CodecTypes['pg/text@1']['input'] | null;
@@ -582,6 +584,7 @@ export type StorageColumnTypes = {
       readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly intent: 'LOGIN' | 'LINK';
+      readonly linking_session_id: CodecTypes['pg/uuid@1']['output'] | null;
       readonly linking_user_id: CodecTypes['pg/uuid@1']['output'] | null;
       readonly nonce: CodecTypes['pg/text@1']['output'] | null;
       readonly pkce_verifier: CodecTypes['pg/text@1']['output'] | null;
@@ -710,6 +713,7 @@ export type StorageColumnInputTypes = {
       readonly expires_at: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly intent: 'LOGIN' | 'LINK';
+      readonly linking_session_id: CodecTypes['pg/uuid@1']['input'] | null;
       readonly linking_user_id: CodecTypes['pg/uuid@1']['input'] | null;
       readonly nonce: CodecTypes['pg/text@1']['input'] | null;
       readonly pkce_verifier: CodecTypes['pg/text@1']['input'] | null;
@@ -811,8 +815,9 @@ export namespace Models {
       | null;
     updatedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     userId: CodecTypes['pg/uuid@1']['output'];
+    oauthLinkStates: public_OAuthState[];
     user: public_User;
-    readonly [RelationKeys]?: 'user';
+    readonly [RelationKeys]?: 'oauthLinkStates' | 'user';
   };
   export type public_EmailVerificationChallenge = {
     attemptCount: CodecTypes['pg/int4@1']['output'];
@@ -850,14 +855,16 @@ export namespace Models {
     expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/uuid@1']['output'];
     intent: 'LOGIN' | 'LINK';
+    linkingSessionId: CodecTypes['pg/uuid@1']['output'] | null;
     linkingUserId: CodecTypes['pg/uuid@1']['output'] | null;
     nonce: CodecTypes['pg/text@1']['output'] | null;
     pkceVerifier: CodecTypes['pg/text@1']['output'] | null;
     provider: 'GOOGLE' | 'GITHUB';
     redirectUri: CodecTypes['pg/text@1']['output'];
     state: CodecTypes['pg/text@1']['output'];
+    linkingSession: public_AuthSession | null;
     linkingUser: public_User | null;
-    readonly [RelationKeys]?: 'linkingUser';
+    readonly [RelationKeys]?: 'linkingSession' | 'linkingUser';
   };
   export type public_PasswordCredential = {
     authIdentityId: CodecTypes['pg/uuid@1']['output'];
@@ -1431,6 +1438,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
+                readonly linking_session_id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: true;
+                };
                 readonly linking_user_id: {
                   readonly nativeType: 'uuid';
                   readonly codecId: 'pg/uuid@1';
@@ -1472,6 +1484,12 @@ type ContractBase = Omit<
                   readonly unique: false;
                 },
                 {
+                  readonly name: 'oauth_states_linking_session_id_idx_cc1618f9';
+                  readonly prefix: 'oauth_states_linking_session_id_idx';
+                  readonly columns: readonly ['linking_session_id'];
+                  readonly unique: false;
+                },
+                {
                   readonly name: 'oauth_states_linking_user_id_idx_db1e27f9';
                   readonly prefix: 'oauth_states_linking_user_id_idx';
                   readonly columns: readonly ['linking_user_id'];
@@ -1488,6 +1506,18 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'users';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'oauth_states';
+                    readonly columns: readonly ['linking_session_id'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'auth_sessions';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -2074,6 +2104,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly oauthLinkStates: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'OAuthState';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['linkingSessionId'];
+                };
+              };
               readonly user: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
@@ -2317,6 +2358,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly linkingSessionId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
               readonly linkingUserId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
@@ -2343,6 +2388,18 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly linkingSession: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'AuthSession';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['linkingSessionId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
               readonly linkingUser: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
@@ -2363,6 +2420,7 @@ type ContractBase = Omit<
                 readonly expiresAt: { readonly column: 'expires_at' };
                 readonly id: { readonly column: 'id' };
                 readonly intent: { readonly column: 'intent' };
+                readonly linkingSessionId: { readonly column: 'linking_session_id' };
                 readonly linkingUserId: { readonly column: 'linking_user_id' };
                 readonly nonce: { readonly column: 'nonce' };
                 readonly pkceVerifier: { readonly column: 'pkce_verifier' };

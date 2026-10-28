@@ -121,3 +121,48 @@ describe('PrismaAuthSessionsRepository.createEnforcingLimit', () => {
     expect(userUpdate).not.toHaveBeenCalled();
   });
 });
+
+describe('PrismaAuthSessionsRepository.findByIdForUpdate', () => {
+  it('locks and returns the requested session inside the supplied transaction', async () => {
+    const row = {
+      id: 'session-id',
+      userId: 'user-id',
+      clientType: 'WEB' as const,
+      deviceName: null,
+      revokedAt: null,
+      expiresAt: NOW.add({ hours: 1 }),
+      lastUsedAt: NOW,
+      createdAt: NOW,
+    };
+    const first = vi.fn().mockResolvedValue(row);
+    const where = vi.fn().mockReturnValue({ first });
+    const lockQuery = { kind: 'lock-session' };
+    const build = vi.fn().mockReturnValue(lockQuery);
+    const returnsRow = vi.fn().mockReturnValue({ build });
+    const sql = vi.fn().mockReturnValue({ returnsRow });
+    const query = vi.fn(async function* () {
+      yield { id: 'session-id' };
+    });
+    const tx = {
+      query,
+      orm: { public: { AuthSession: { where } } },
+    };
+    const prisma = {
+      db: { raw: { sql }, orm: { public: {} } },
+    } as unknown as PrismaService;
+    const repository = new PrismaAuthSessionsRepository(prisma);
+
+    await expect(
+      repository.findByIdForUpdate('session-id', tx as never),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'session-id',
+        userId: 'user-id',
+        revokedAt: null,
+      }),
+    );
+
+    expect(query).toHaveBeenCalledWith(lockQuery);
+    expect(where).toHaveBeenCalledWith({ id: 'session-id' });
+  });
+});

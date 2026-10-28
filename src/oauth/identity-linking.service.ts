@@ -15,6 +15,10 @@ import { EMAIL_PROVIDER, type EmailProvider } from '../email/email-provider.js';
 import { accountEmail } from '../email/templates/account-email.js';
 import { UNIT_OF_WORK, type UnitOfWork } from '../prisma/unit-of-work.js';
 import { SessionClientTypeName } from '../sessions/session-client-type.js';
+import {
+  AUTH_SESSIONS_REPOSITORY,
+  type AuthSessionsRepository,
+} from '../sessions/auth-sessions.repository.js';
 import { IssuedSession, SessionService } from '../sessions/session.service.js';
 import { normalizeEmail } from '../users/normalize-email.js';
 import {
@@ -69,6 +73,8 @@ export class IdentityLinkingService {
     private readonly oauthLinkChallengeRepository: OAuthLinkChallengeRepository,
     private readonly otpService: OtpService,
     private readonly sessionService: SessionService,
+    @Inject(AUTH_SESSIONS_REPOSITORY)
+    private readonly authSessionsRepository: AuthSessionsRepository,
     private readonly registry: OAuthProviderRegistry,
     private readonly logger: PinoLogger,
   ) {}
@@ -94,11 +100,13 @@ export class IdentityLinkingService {
     return methods;
   }
 
-  async startExplicitLink(
-    userId: string,
-    provider: OAuthProviderName,
-    clientType: SessionClientTypeName,
-  ): Promise<{ authorizationUrl: string; state: string }> {
+  async startExplicitLink(input: {
+    userId: string;
+    sessionId: string;
+    provider: OAuthProviderName;
+    clientType: SessionClientTypeName;
+  }): Promise<{ authorizationUrl: string; state: string }> {
+    const { userId, sessionId, provider, clientType } = input;
     const alreadyLinked = (
       await this.oauthIdentitiesRepository.listForUser(userId)
     ).some((identity) => identity.provider === provider);
@@ -125,6 +133,7 @@ export class IdentityLinkingService {
       redirectUri,
       clientType,
       linkingUserId: userId,
+      linkingSessionId: sessionId,
       expiresAt: new Date(Date.now() + OAUTH_STATE_TTL_MS),
     });
 
@@ -138,13 +147,12 @@ export class IdentityLinkingService {
     stateRecord: OAuthStateRecord,
     profile: VerifiedOAuthProfile,
   ): Promise<void> {
-    if (!stateRecord.linkingUserId) {
-      throw new Error(
-        'completeExplicitLink called with a state record that has no linkingUserId.',
-      );
-    }
+    if (!stateRecord.linkingUserId || !stateRecord.linkingSessionId)
+      throw this.invalidLinkAuthorization();
+
     await this.attachIdentity(
       stateRecord.linkingUserId,
+      stateRecord.linkingSessionId,
       stateRecord.provider,
       profile.providerSubject,
     );
@@ -307,37 +315,54 @@ export class IdentityLinkingService {
 
   private async attachIdentity(
     userId: string,
+    sessionId: string,
     provider: OAuthProviderName,
     providerSubject: string,
   ): Promise<void> {
-    const existingOwnerId =
-      await this.oauthIdentitiesRepository.findUserIdByProviderSubject(
-        provider,
-        providerSubject,
-      );
-
-    if (existingOwnerId && existingOwnerId === userId) return;
-
-    if (existingOwnerId)
-      throw new AppError(
-        ErrorCode.OAUTH_IDENTITY_ALREADY_LINKED,
-        `This ${provider} account is already linked to a different Stack Trace account`,
-        HttpStatus.CONFLICT,
-      );
-
-    const alreadyHasProvider = (
-      await this.oauthIdentitiesRepository.listForUser(userId)
-    ).some((identity) => identity.provider === provider);
-
-    if (alreadyHasProvider)
-      throw new AppError(
-        ErrorCode.PROVIDER_ALREADY_LINKED,
-        `This account already has a ${provider} sign-in method linked.`,
-        HttpStatus.CONFLICT,
-      );
-
     try {
-      await this.unitOfWork.run(async (tx) => {
+      const attached = await this.unitOfWork.run(async (tx) => {
+        await this.userRepository.lockForUpdate(userId, tx);
+
+        const session = await this.authSessionsRepository.findByIdForUpdate(
+          sessionId,
+          tx,
+        );
+
+        if (
+          !session ||
+          session.userId !== userId ||
+          session.revokedAt !== null ||
+          session.expiresAt.getTime() <= Date.now()
+        )
+          throw this.invalidLinkAuthorization();
+
+        const existingOwnerId =
+          await this.oauthIdentitiesRepository.findUserIdByProviderSubject(
+            provider,
+            providerSubject,
+            tx,
+          );
+
+        if (existingOwnerId === userId) return false;
+
+        if (existingOwnerId)
+          throw new AppError(
+            ErrorCode.OAUTH_IDENTITY_ALREADY_LINKED,
+            `This ${provider} account is already linked to a different Stack Trace account`,
+            HttpStatus.CONFLICT,
+          );
+
+        const alreadyHasProvider = (
+          await this.oauthIdentitiesRepository.listForUser(userId, tx)
+        ).some((identity) => identity.provider === provider);
+
+        if (alreadyHasProvider)
+          throw new AppError(
+            ErrorCode.PROVIDER_ALREADY_LINKED,
+            `This account already has a ${provider} sign-in method linked.`,
+            HttpStatus.CONFLICT,
+          );
+
         await this.oauthIdentitiesRepository.createForUser(
           userId,
           provider,
@@ -356,7 +381,11 @@ export class IdentityLinkingService {
           },
           tx,
         );
+
+        return true;
       });
+
+      if (!attached) return;
     } catch (error: unknown) {
       this.throwIdentityConflict(error, provider);
     }
@@ -365,6 +394,14 @@ export class IdentityLinkingService {
       userId,
       provider,
       'provider_linked',
+    );
+  }
+
+  private invalidLinkAuthorization(): AppError {
+    return new AppError(
+      ErrorCode.UNAUTHORIZED,
+      'Unable to link this sign-in method. Please sign in and try again.',
+      HttpStatus.UNAUTHORIZED,
     );
   }
 

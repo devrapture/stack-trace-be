@@ -112,12 +112,7 @@ export class OauthController {
     @Query() query: StartOAuthDto,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.startLink(
-      currentUser.userId,
-      'GOOGLE',
-      query.clientType,
-      reply,
-    );
+    return this.startLink(currentUser, 'GOOGLE', query.clientType, reply);
   }
 
   @Get('github/link/start')
@@ -127,12 +122,7 @@ export class OauthController {
     @Query() query: StartOAuthDto,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.startLink(
-      currentUser.userId,
-      'GITHUB',
-      query.clientType,
-      reply,
-    );
+    return this.startLink(currentUser, 'GITHUB', query.clientType, reply);
   }
 
   @Delete(':provider')
@@ -176,17 +166,18 @@ export class OauthController {
   }
 
   private async startLink(
-    userId: string,
+    currentUser: RequestUser,
     provider: OAuthProviderName,
     clientType: StartOAuthDto['clientType'],
     reply: FastifyReply,
   ): Promise<{ authorizationUrl: string }> {
     const { authorizationUrl, state } =
-      await this.identityLinkingService.startExplicitLink(
-        userId,
+      await this.identityLinkingService.startExplicitLink({
+        userId: currentUser.userId,
+        sessionId: currentUser.sessionId,
         provider,
         clientType,
-      );
+      });
     setOAuthStateCookie(
       reply,
       provider,

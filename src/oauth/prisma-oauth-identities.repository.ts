@@ -42,8 +42,10 @@ export class PrismaOAuthIdentitiesRepository implements OAuthIdentitiesRepositor
   async findUserIdByProviderSubject(
     provider: OAuthProviderName,
     providerSubject: string,
+    tx?: TransactionClient,
   ): Promise<string | null> {
-    const row = await this.db.AuthIdentity.where({
+    const client = tx ?? this.prisma.db;
+    const row = await client.orm.public.AuthIdentity.where({
       provider,
       providerSubject,
     }).first();

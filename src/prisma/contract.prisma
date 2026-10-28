@@ -167,6 +167,7 @@ model AuthSession {
   revokedReason     SessionRevokedReason? @map("revoked_reason")
 
   user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauthLinkStates   OAuthState[]
 
   @@index([userId])
   @@map("auth_sessions")
@@ -191,23 +192,26 @@ model PasswordResetChallenge {
 }
 
 model OAuthState {
-  id            Uuid              @id @default(uuid())
-  provider      OAuthProviderType
-  intent        OAuthIntent
-  state         String            @unique
-  nonce         String?
-  pkceVerifier  String?           @map("pkce_verifier")
-  redirectUri   String            @map("redirect_uri")
-  clientType    SessionClientType @map("client_type")
-  linkingUserId Uuid?             @map("linking_user_id")
-  expiresAt     Timestamptz(3)    @map("expires_at")
-  consumedAt    Timestamptz(3)?   @map("consumed_at")
+  id               Uuid              @id @default(uuid())
+  provider         OAuthProviderType
+  intent           OAuthIntent
+  state            String            @unique
+  nonce            String?
+  pkceVerifier     String?           @map("pkce_verifier")
+  redirectUri      String            @map("redirect_uri")
+  clientType       SessionClientType @map("client_type")
+  linkingUserId    Uuid?             @map("linking_user_id")
+  linkingSessionId Uuid?             @map("linking_session_id")
+  expiresAt        Timestamptz(3)    @map("expires_at")
+  consumedAt       Timestamptz(3)?   @map("consumed_at")
 
-  createdAt     Timestamptz(3)    @map("created_at") @default(now())
+  createdAt        Timestamptz(3)    @map("created_at") @default(now())
 
-  linkingUser   User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
+  linkingUser      User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
+  linkingSession   AuthSession?      @relation(fields: [linkingSessionId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
+  @@index([linkingSessionId])
   @@map("oauth_states")
 }
 

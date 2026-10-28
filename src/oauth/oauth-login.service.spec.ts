@@ -98,6 +98,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       redirectUri,
       clientType: 'WEB',
       linkingUserId: null,
+      linkingSessionId: null,
       expiresAt: new Date(Date.now() + 60_000),
       consumedAt: new Date(),
     });
@@ -154,6 +155,7 @@ describe('OAuthLoginService callback redirect URI', () => {
         redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
         clientType: 'WEB',
         linkingUserId: null,
+        linkingSessionId: null,
         expiresAt: new Date(Date.now() + 60_000),
         consumedAt: new Date(),
       });
@@ -199,6 +201,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
       clientType: 'WEB',
       linkingUserId: null,
+      linkingSessionId: null,
       expiresAt: new Date(Date.now() + 60_000),
       consumedAt: new Date(),
     });
@@ -274,6 +277,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
       clientType: 'WEB',
       linkingUserId: null,
+      linkingSessionId: null,
       expiresAt: new Date(Date.now() + 60_000),
       consumedAt: new Date(),
     });
@@ -352,6 +356,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
       clientType: 'WEB',
       linkingUserId: null,
+      linkingSessionId: null,
       expiresAt: new Date(Date.now() + 60_000),
       consumedAt: new Date(),
     });
@@ -400,6 +405,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       redirectUri: 'https://api.example.com/api/v1/oauth/google/callback',
       clientType: 'WEB',
       linkingUserId: null,
+      linkingSessionId: null,
       expiresAt: new Date(Date.now() + 60_000),
       consumedAt: new Date(),
     });
