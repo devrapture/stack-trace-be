@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'17f14006a3682311192bea559c14f3710be59d772ef7f005c82e309852244426'>;
+  StorageHashBase<'8e2c6af9915848a33da2eaea4d69e21f2e31b944841a0d9504d660d5f3d64fa3'>;
 export type ExecutionHash =
   ExecutionHashBase<'95a81433725b602a304667655f1d5b66411675f1b0c0e9bf0619038b3773e50e'>;
 export type ProfileHash =
@@ -1367,6 +1367,12 @@ type ContractBase = Omit<
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
               indexes: readonly [
+                {
+                  readonly name: 'oauth_link_challenges_expires_at_idx_35365ada';
+                  readonly prefix: 'oauth_link_challenges_expires_at_idx';
+                  readonly columns: readonly ['expires_at'];
+                  readonly unique: false;
+                },
                 {
                   readonly name: 'oauth_link_challenges_user_id_idx_6c952402';
                   readonly prefix: 'oauth_link_challenges_user_id_idx';

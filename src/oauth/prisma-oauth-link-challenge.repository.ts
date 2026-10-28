@@ -105,4 +105,11 @@ export class PrismaOAuthLinkChallengeRepository implements OAuthLinkChallengeRep
     const { affectedRows } = await this.prisma.db.runtime().execute(query);
     return affectedRows > 0;
   }
+
+  async deleteExpired(before: Date): Promise<number> {
+    const cutoff = Temporal.Instant.fromEpochMilliseconds(before.getTime());
+    return this.db.OAuthLinkChallenge.where((challenge) =>
+      challenge.expiresAt.lt(cutoff),
+    ).deleteAndCount();
+  }
 }

@@ -30,4 +30,6 @@ export interface OAuthLinkChallengeRepository {
   incrementAttempts(challengeId: string): Promise<boolean>;
 
   markConsumed(challengeId: string, tx?: TransactionClient): Promise<boolean>;
+
+  deleteExpired(before: Date): Promise<number>;
 }

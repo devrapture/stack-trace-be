@@ -62,4 +62,30 @@ describe('PrismaOAuthLinkChallengeRepository', () => {
       new Date(EXPIRES_AT.epochMilliseconds),
     );
   });
+
+  it('deletes challenges that expired before the cutoff', async () => {
+    const expiresAtLt = vi.fn();
+    const deleteAndCount = vi.fn().mockResolvedValue(3);
+    const where = vi.fn().mockImplementation((predicate) => {
+      predicate({ expiresAt: { lt: expiresAtLt } });
+      return { deleteAndCount };
+    });
+    const prisma = {
+      db: {
+        orm: {
+          public: {
+            OAuthLinkChallenge: { where },
+          },
+        },
+      },
+    } as unknown as PrismaService;
+    const repository = new PrismaOAuthLinkChallengeRepository(prisma);
+
+    await expect(
+      repository.deleteExpired(new Date(EXPIRES_AT.epochMilliseconds)),
+    ).resolves.toBe(3);
+
+    expect(expiresAtLt).toHaveBeenCalledWith(EXPIRES_AT);
+    expect(deleteAndCount).toHaveBeenCalledOnce();
+  });
 });

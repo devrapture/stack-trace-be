@@ -1,0 +1,41 @@
+[
+  {
+    "id": "index.oauth_link_challenges.oauth_link_challenges_expires_at_idx_35365ada",
+    "label": "Create index \"oauth_link_challenges_expires_at_idx_35365ada\" on \"oauth_link_challenges\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "oauth_link_challenges_expires_at_idx_35365ada",
+        "table": "oauth_link_challenges"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"oauth_link_challenges_expires_at_idx_35365ada\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_link_challenges_expires_at_idx_35365ada\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"oauth_link_challenges_expires_at_idx_35365ada\"",
+        "sql": "CREATE INDEX \"oauth_link_challenges_expires_at_idx_35365ada\" ON \"public\".\"oauth_link_challenges\" (\"expires_at\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"oauth_link_challenges_expires_at_idx_35365ada\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_link_challenges_expires_at_idx_35365ada\""
+        ]
+      }
+    ]
+  }
+]
