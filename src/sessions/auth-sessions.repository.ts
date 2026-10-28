@@ -56,4 +56,8 @@ export interface AuthSessionsRepository {
   ): Promise<void>;
   findActiveForUser(userId: string): Promise<SessionRecord[]>;
   findById(sessionId: string): Promise<SessionRecord | null>;
+  findByIdForUpdate(
+    sessionId: string,
+    tx: TransactionClient,
+  ): Promise<SessionRecord | null>;
 }

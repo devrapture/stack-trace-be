@@ -1,0 +1,125 @@
+[
+  {
+    "id": "column.public.oauth_states.linking_session_id",
+    "label": "Add column \"linking_session_id\" to \"oauth_states\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "linking_session_id",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"linking_session_id\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "oauth_states",
+          "linking_session_id"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"linking_session_id\"",
+        "sql": "ALTER TABLE \"public\".\"oauth_states\" ADD COLUMN \"linking_session_id\" uuid"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"linking_session_id\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "oauth_states",
+          "linking_session_id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.oauth_states.oauth_states_linking_session_id_idx_cc1618f9",
+    "label": "Create index \"oauth_states_linking_session_id_idx_cc1618f9\" on \"oauth_states\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "oauth_states_linking_session_id_idx_cc1618f9",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"oauth_states_linking_session_id_idx_cc1618f9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_states_linking_session_id_idx_cc1618f9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"oauth_states_linking_session_id_idx_cc1618f9\"",
+        "sql": "CREATE INDEX \"oauth_states_linking_session_id_idx_cc1618f9\" ON \"public\".\"oauth_states\" (\"linking_session_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"oauth_states_linking_session_id_idx_cc1618f9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"oauth_states_linking_session_id_idx_cc1618f9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.oauth_states.oauth_states_linking_session_id_fkey",
+    "label": "Add foreign key \"oauth_states_linking_session_id_fkey\" on \"oauth_states\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "oauth_states_linking_session_id_fkey",
+        "table": "oauth_states"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"oauth_states_linking_session_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "oauth_states_linking_session_id_fkey",
+          "public",
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"oauth_states_linking_session_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"oauth_states\"\nADD CONSTRAINT \"oauth_states_linking_session_id_fkey\"\nFOREIGN KEY (\"linking_session_id\")\nREFERENCES \"public\".\"auth_sessions\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"oauth_states_linking_session_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "oauth_states_linking_session_id_fkey",
+          "public",
+          "\"public\".\"oauth_states\""
+        ]
+      }
+    ]
+  }
+]

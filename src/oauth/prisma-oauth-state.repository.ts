@@ -24,6 +24,7 @@ export class PrismaOAuthStateRepository implements OAuthStateRepository {
       redirectUri: input.redirectUri,
       clientType: input.clientType,
       linkingUserId: input.linkingUserId,
+      linkingSessionId: input.linkingSessionId,
       expiresAt: Temporal.Instant.fromEpochMilliseconds(
         input.expiresAt.getTime(),
       ),
@@ -54,6 +55,7 @@ export class PrismaOAuthStateRepository implements OAuthStateRepository {
           redirectUri: row.redirectUri,
           clientType: row.clientType,
           linkingUserId: row.linkingUserId,
+          linkingSessionId: row.linkingSessionId,
           expiresAt: new Date(row.expiresAt.epochMilliseconds),
           consumedAt: row.consumedAt
             ? new Date(row.consumedAt.epochMilliseconds)

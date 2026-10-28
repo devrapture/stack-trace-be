@@ -6,17 +6,29 @@ export const OAUTH_STATE_REPOSITORY = Symbol('OAUTH_STATE_REPOSITORY');
 export type OAuthProviderName = 'GOOGLE' | 'GITHUB';
 export type OAuthIntentName = 'LOGIN' | 'LINK';
 
-export interface CreateOAuthStateInput {
+interface CreateOAuthStateBase {
   provider: OAuthProviderName;
-  intent: OAuthIntentName;
   state: string;
   nonce?: string;
   pkceVerifier?: string;
   redirectUri: string;
   clientType: SessionClientTypeName;
-  linkingUserId?: string;
   expiresAt: Date;
 }
+
+export type CreateOAuthStateInput = CreateOAuthStateBase &
+  (
+    | {
+        intent: 'LOGIN';
+        linkingUserId?: never;
+        linkingSessionId?: never;
+      }
+    | {
+        intent: 'LINK';
+        linkingUserId: string;
+        linkingSessionId: string;
+      }
+  );
 
 export type OAuthStateField = FieldOutputTypes['public']['OAuthState'];
 
@@ -31,6 +43,7 @@ export type OAuthStateRecord = Readonly<
     | 'redirectUri'
     | 'clientType'
     | 'linkingUserId'
+    | 'linkingSessionId'
   > & {
     expiresAt: Date;
     consumedAt: Date | null;

@@ -96,16 +96,17 @@ describe('OauthController state binding', () => {
       const reply = createReply();
 
       const result = await controller[method](
-        { userId: 'user-id' } as RequestUser,
+        { userId: 'user-id', sessionId: 'session-id' } as RequestUser,
         { clientType: 'WEB' },
         reply as unknown as FastifyReply,
       );
 
-      expect(startExplicitLink).toHaveBeenCalledWith(
-        'user-id',
+      expect(startExplicitLink).toHaveBeenCalledWith({
+        userId: 'user-id',
+        sessionId: 'session-id',
         provider,
-        'WEB',
-      );
+        clientType: 'WEB',
+      });
       expect(reply.setCookie).toHaveBeenCalledWith(
         oauthStateCookieName(provider),
         expect.any(String),

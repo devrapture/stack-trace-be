@@ -34,6 +34,7 @@ describe('IdentityLinkingService explicit linking', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       {
         adapterFor: vi.fn().mockReturnValue({ createAuthorizationRequest }),
         redirectUriFor: vi.fn().mockReturnValue(redirectUri),
@@ -41,7 +42,12 @@ describe('IdentityLinkingService explicit linking', () => {
       {} as never,
     );
 
-    const start = service.startExplicitLink('user-id', 'GOOGLE', 'WEB');
+    const start = service.startExplicitLink({
+      userId: 'user-id',
+      sessionId: 'session-id',
+      provider: 'GOOGLE',
+      clientType: 'WEB',
+    });
     await vi.waitFor(() => expect(create).toHaveBeenCalledOnce());
 
     let completed = false;
@@ -66,6 +72,7 @@ describe('IdentityLinkingService explicit linking', () => {
         redirectUri,
         clientType: 'WEB',
         linkingUserId: 'user-id',
+        linkingSessionId: 'session-id',
       }),
     );
   });
@@ -103,6 +110,7 @@ describe('IdentityLinkingService.unlinkProvider', () => {
       { record } as never,
       { lockForUpdate, getUserById } as never,
       { send } as never,
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -249,6 +257,12 @@ describe('IdentityLinkingService post-link notifications', () => {
     const record = vi.fn().mockResolvedValue(undefined);
     const send = vi.fn().mockRejectedValue(new Error('Resend unavailable'));
     const createSession = vi.fn().mockResolvedValue(issuedSession);
+    const findByIdForUpdate = vi.fn().mockResolvedValue({
+      id: 'session-id',
+      userId: 'user-id',
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
     const logger = { error: vi.fn() };
     const run = vi.fn(async (work: (transaction: typeof tx) => Promise<void>) =>
       work(tx),
@@ -275,6 +289,7 @@ describe('IdentityLinkingService post-link notifications', () => {
       } as never,
       { verify: vi.fn().mockReturnValue(true) } as never,
       { createSession } as never,
+      { findByIdForUpdate } as never,
       {} as never,
       logger as never,
     );
@@ -284,9 +299,11 @@ describe('IdentityLinkingService post-link notifications', () => {
       issuedSession,
       createForUser,
       createSession,
+      findByIdForUpdate,
       record,
       send,
       logger,
+      tx,
     };
   }
 
@@ -317,12 +334,14 @@ describe('IdentityLinkingService post-link notifications', () => {
   });
 
   it('does not fail an explicit link when its notification fails', async () => {
-    const { service, createForUser, logger } = createService();
+    const { service, createForUser, findByIdForUpdate, logger, tx } =
+      createService();
 
     await expect(
       service.completeExplicitLink(
         {
           linkingUserId: 'user-id',
+          linkingSessionId: 'session-id',
           provider: 'GOOGLE',
         } as never,
         { providerSubject: 'google-subject' } as never,
@@ -330,6 +349,7 @@ describe('IdentityLinkingService post-link notifications', () => {
     ).resolves.toBeUndefined();
 
     expect(createForUser).toHaveBeenCalledOnce();
+    expect(findByIdForUpdate).toHaveBeenCalledWith('session-id', tx);
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-id',
@@ -338,6 +358,83 @@ describe('IdentityLinkingService post-link notifications', () => {
       }),
       'Provider change succeeded, but the notification email failed',
     );
+  });
+
+  it.each([
+    ['missing', null],
+    [
+      'revoked',
+      {
+        userId: 'user-id',
+        revokedAt: new Date('2026-10-28T12:00:00.000Z'),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    ],
+    [
+      'expired',
+      {
+        userId: 'user-id',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() - 1),
+      },
+    ],
+    [
+      'owned by another user',
+      {
+        userId: 'other-user-id',
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    ],
+  ])(
+    'rejects an explicit link when the initiating session is %s',
+    async (_label, session) => {
+      const { service, createForUser, findByIdForUpdate, record } =
+        createService();
+      findByIdForUpdate.mockResolvedValueOnce(session);
+
+      await expect(
+        service.completeExplicitLink(
+          {
+            linkingUserId: 'user-id',
+            linkingSessionId: 'session-id',
+            provider: 'GOOGLE',
+          } as never,
+          { providerSubject: 'google-subject' } as never,
+        ),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          code: ErrorCode.UNAUTHORIZED,
+          httpStatus: 401,
+        }),
+      );
+
+      expect(createForUser).not.toHaveBeenCalled();
+      expect(record).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects legacy link state that has no initiating session', async () => {
+    const { service, createForUser, findByIdForUpdate } = createService();
+
+    await expect(
+      service.completeExplicitLink(
+        {
+          linkingUserId: 'user-id',
+          linkingSessionId: null,
+          provider: 'GOOGLE',
+        } as never,
+        { providerSubject: 'google-subject' } as never,
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        code: ErrorCode.UNAUTHORIZED,
+        httpStatus: 401,
+      }),
+    );
+
+    expect(findByIdForUpdate).not.toHaveBeenCalled();
+    expect(createForUser).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -386,6 +483,7 @@ describe('IdentityLinkingService post-link notifications', () => {
         service.completeExplicitLink(
           {
             linkingUserId: 'user-id',
+            linkingSessionId: 'session-id',
             provider: 'GOOGLE',
           } as never,
           { providerSubject: 'google-subject' } as never,

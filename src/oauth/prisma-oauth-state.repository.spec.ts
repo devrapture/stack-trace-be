@@ -40,6 +40,38 @@ describe('PrismaOAuthStateRepository', () => {
     );
   });
 
+  it('stores the initiating session for link state', async () => {
+    const create = vi.fn().mockResolvedValue(undefined);
+    const prisma = {
+      db: {
+        orm: {
+          public: {
+            OAuthState: { create },
+          },
+        },
+      },
+    } as unknown as PrismaService;
+    const repository = new PrismaOAuthStateRepository(prisma);
+
+    await repository.create({
+      provider: 'GOOGLE',
+      intent: 'LINK',
+      state: 'oauth-state',
+      redirectUri: 'http://localhost:3000/api/v1/oauth/google/callback',
+      clientType: 'WEB',
+      linkingUserId: 'user-id',
+      linkingSessionId: 'session-id',
+      expiresAt: new Date(EXPIRES_AT.epochMilliseconds),
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        linkingUserId: 'user-id',
+        linkingSessionId: 'session-id',
+      }),
+    );
+  });
+
   it('uses Temporal.Instant when consuming and maps timestamps to Date', async () => {
     vi.spyOn(Temporal.Now, 'instant').mockReturnValue(CONSUMED_AT);
     const updateAndCount = vi.fn().mockResolvedValue(1);
@@ -52,6 +84,7 @@ describe('PrismaOAuthStateRepository', () => {
       redirectUri: 'http://localhost:3000/api/v1/oauth/google/callback',
       clientType: 'OTHER',
       linkingUserId: null,
+      linkingSessionId: null,
       expiresAt: EXPIRES_AT,
       consumedAt: CONSUMED_AT,
     });
@@ -77,6 +110,7 @@ describe('PrismaOAuthStateRepository', () => {
     });
     expect(result?.expiresAt).toEqual(new Date(EXPIRES_AT.epochMilliseconds));
     expect(result?.consumedAt).toEqual(new Date(CONSUMED_AT.epochMilliseconds));
+    expect(result?.linkingSessionId).toBeNull();
   });
 
   it('deletes states that expired before the cutoff', async () => {
