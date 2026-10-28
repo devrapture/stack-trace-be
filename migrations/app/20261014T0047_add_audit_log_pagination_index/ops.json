@@ -1,0 +1,41 @@
+[
+  {
+    "id": "index.audit_logs.audit_logs_created_at_id_idx_d7da240a",
+    "label": "Create index \"audit_logs_created_at_id_idx_d7da240a\" on \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "audit_logs_created_at_id_idx_d7da240a",
+        "table": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"audit_logs_created_at_id_idx_d7da240a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_created_at_id_idx_d7da240a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"audit_logs_created_at_id_idx_d7da240a\"",
+        "sql": "CREATE INDEX \"audit_logs_created_at_id_idx_d7da240a\" ON \"public\".\"audit_logs\" (\"created_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"audit_logs_created_at_id_idx_d7da240a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_created_at_id_idx_d7da240a\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,5 +1,6 @@
 import type { PinoLogger } from 'nestjs-pino';
 import { vi } from 'vitest';
+import type { AuditLogRepository } from '../../audit/audit-log.repository.js';
 import type { EmailProvider } from '../../email/email-provider.js';
 import type { TransactionClient } from '../../prisma/db.js';
 import type { PrismaUnitOfWork } from '../../prisma/prisma-unit-of-work.js';
@@ -21,7 +22,7 @@ const genericResponse = {
 const activeUser: UserProfile = {
   id: 'user-id',
   publicId: 'public-id',
-  role: 'USER',
+  role: 'PLAYER',
   status: 'ACTIVE',
   avatarUrl: null,
   primaryEmail: {
@@ -48,6 +49,7 @@ function createService(options?: {
       .mockResolvedValue(
         options?.user === undefined ? activeUser : options.user,
       ),
+    lockForUpdate: vi.fn().mockResolvedValue(undefined),
   } as unknown as UsersRepository;
   const passwords = {
     findHashByUserId: vi
@@ -94,6 +96,9 @@ function createService(options?: {
   const sessions = {
     revokeAllForUser: vi.fn().mockResolvedValue(undefined),
   } as unknown as AuthSessionsRepository;
+  const auditLog = {
+    record: vi.fn().mockResolvedValue(undefined),
+  } as unknown as AuditLogRepository;
   const logger = {
     error: vi.fn(),
   } as unknown as PinoLogger;
@@ -114,10 +119,12 @@ function createService(options?: {
       challenges,
       unitOfWork,
       sessions,
+      auditLog,
       logger,
       otp,
       hasher,
     ),
+    auditLog,
     challenges,
     email,
     hasher,
@@ -127,6 +134,7 @@ function createService(options?: {
     sessions,
     transaction,
     unitOfWork,
+    users,
   };
 }
 
@@ -266,9 +274,16 @@ describe('PasswordResetService.resetPassword', () => {
     expect(sessions.revokeAllForUser).not.toHaveBeenCalled();
   });
 
-  it('consumes the challenge before changing the password', async () => {
-    const { service, challenges, passwords, sessions, transaction } =
-      createService();
+  it('locks the user before consuming the challenge and revoking sessions', async () => {
+    const {
+      service,
+      auditLog,
+      challenges,
+      passwords,
+      sessions,
+      transaction,
+      users,
+    } = createService();
 
     await expect(service.resetPassword(dto)).resolves.toEqual({
       message:
@@ -279,10 +294,19 @@ describe('PasswordResetService.resetPassword', () => {
       'challenge-id',
       transaction,
     );
+    expect(users.lockForUpdate).toHaveBeenCalledWith(
+      activeUser.id,
+      transaction,
+    );
     expect(passwords.updateHashForUser).toHaveBeenCalledWith(
       activeUser.id,
       'new-password-hash',
       transaction,
+    );
+    expect(
+      vi.mocked(users.lockForUpdate).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(challenges.consumeIfActive).mock.invocationCallOrder[0],
     );
     expect(
       vi.mocked(challenges.consumeIfActive).mock.invocationCallOrder[0],
@@ -293,6 +317,18 @@ describe('PasswordResetService.resetPassword', () => {
       activeUser.id,
       'PASSWORD_CHANGE',
       undefined,
+      transaction,
+    );
+    expect(
+      vi.mocked(users.lockForUpdate).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(sessions.revokeAllForUser).mock.invocationCallOrder[0],
+    );
+    expect(auditLog.record).toHaveBeenCalledWith(
+      {
+        userId: activeUser.id,
+        eventType: 'PASSWORD_RESET',
+      },
       transaction,
     );
   });

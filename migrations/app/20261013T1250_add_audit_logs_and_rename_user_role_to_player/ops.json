@@ -1,0 +1,401 @@
+[
+  {
+    "id": "dropCheckConstraint.users.users_role_check_1954e8c0",
+    "label": "Drop check constraint \"users_role_check_1954e8c0\" on \"users\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "users_role_check_1954e8c0",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"users_role_check_1954e8c0\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_role_check_1954e8c0",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"users_role_check_1954e8c0\"",
+        "sql": "ALTER TABLE \"public\".\"users\" DROP CONSTRAINT \"users_role_check_1954e8c0\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"users_role_check_1954e8c0\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_role_check_1954e8c0",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data.users.role.user_to_player",
+    "label": "Rename existing USER roles to PLAYER",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "table": "users",
+        "name": "role"
+      }
+    },
+    "precheck": [
+      {
+        "description": "verify existing roles can be migrated",
+        "sql": "SELECT NOT EXISTS (\n              SELECT 1\n              FROM \"public\".\"users\"\n              WHERE \"role\" NOT IN ('USER', 'PLAYER', 'ADMIN')\n            ) AS result"
+      }
+    ],
+    "execute": [
+      {
+        "description": "rename USER roles to PLAYER",
+        "sql": "UPDATE \"public\".\"users\"\n              SET \"role\" = 'PLAYER'\n              WHERE \"role\" = 'USER'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify no USER roles remain",
+        "sql": "SELECT NOT EXISTS (\n              SELECT 1 FROM \"public\".\"users\" WHERE \"role\" = 'USER'\n            ) AS result"
+      }
+    ]
+  },
+  {
+    "id": "table.audit_logs",
+    "label": "Create table \"audit_logs\"",
+    "summary": "Creates table \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"audit_logs\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"audit_logs\"",
+        "sql": "CREATE TABLE \"public\".\"audit_logs\" (\n  \"actor_user_id\" uuid,\n  \"created_at\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"event_type\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"metadata\" jsonb,\n  \"user_id\" uuid,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"audit_logs_event_type_check_a7c68cf2\" CHECK (\"event_type\" IN ('PASSWORD_RESET', 'PASSWORD_CHANGED', 'PASSWORD_ADDED', 'PROVIDER_LINKED', 'PROVIDER_UNLINKED', 'ADMIN_ROLE_GRANTED', 'ADMIN_ROLE_REVOKED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"audit_logs\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "setDefault.users.role",
+    "label": "Set default on users.role to PLAYER",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "table": "users",
+        "name": "role"
+      }
+    },
+    "precheck": [
+      {
+        "description": "verify users.role exists",
+        "sql": "SELECT EXISTS (\n              SELECT 1\n              FROM information_schema.columns\n              WHERE table_schema = $1\n                AND table_name = $2\n                AND column_name = $3\n            ) AS result",
+        "params": [
+          "public",
+          "users",
+          "role"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "set users.role default to PLAYER",
+        "sql": "ALTER TABLE \"public\".\"users\"\n              ALTER COLUMN \"role\" SET DEFAULT 'PLAYER'"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify users.role defaults to PLAYER",
+        "sql": "SELECT EXISTS (\n              SELECT 1\n              FROM information_schema.columns\n              WHERE table_schema = $1\n                AND table_name = $2\n                AND column_name = $3\n                AND column_default = $4\n            ) AS result",
+        "params": [
+          "public",
+          "users",
+          "role",
+          "'PLAYER'::text"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.users.users_role_check_f6d86ad7",
+    "label": "Add check constraint \"users_role_check_f6d86ad7\" on \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "users_role_check_f6d86ad7",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"users_role_check_f6d86ad7\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_role_check_f6d86ad7",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"users_role_check_f6d86ad7\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ADD CONSTRAINT \"users_role_check_f6d86ad7\" CHECK (\"role\" IN ('PLAYER', 'ADMIN'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"users_role_check_f6d86ad7\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_role_check_f6d86ad7",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.audit_logs.audit_logs_actor_user_id_idx_c46ca325",
+    "label": "Create index \"audit_logs_actor_user_id_idx_c46ca325\" on \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "audit_logs_actor_user_id_idx_c46ca325",
+        "table": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"audit_logs_actor_user_id_idx_c46ca325\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_actor_user_id_idx_c46ca325\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"audit_logs_actor_user_id_idx_c46ca325\"",
+        "sql": "CREATE INDEX \"audit_logs_actor_user_id_idx_c46ca325\" ON \"public\".\"audit_logs\" (\"actor_user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"audit_logs_actor_user_id_idx_c46ca325\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_actor_user_id_idx_c46ca325\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.audit_logs.audit_logs_event_type_idx_8ee05680",
+    "label": "Create index \"audit_logs_event_type_idx_8ee05680\" on \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "audit_logs_event_type_idx_8ee05680",
+        "table": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"audit_logs_event_type_idx_8ee05680\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_event_type_idx_8ee05680\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"audit_logs_event_type_idx_8ee05680\"",
+        "sql": "CREATE INDEX \"audit_logs_event_type_idx_8ee05680\" ON \"public\".\"audit_logs\" (\"event_type\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"audit_logs_event_type_idx_8ee05680\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_event_type_idx_8ee05680\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.audit_logs.audit_logs_user_id_idx_6c952402",
+    "label": "Create index \"audit_logs_user_id_idx_6c952402\" on \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "audit_logs_user_id_idx_6c952402",
+        "table": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"audit_logs_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_user_id_idx_6c952402\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"audit_logs_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"audit_logs_user_id_idx_6c952402\" ON \"public\".\"audit_logs\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"audit_logs_user_id_idx_6c952402\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"audit_logs_user_id_idx_6c952402\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.audit_logs.audit_logs_user_id_fkey",
+    "label": "Add foreign key \"audit_logs_user_id_fkey\" on \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "audit_logs_user_id_fkey",
+        "table": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"audit_logs_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "audit_logs_user_id_fkey",
+          "public",
+          "\"public\".\"audit_logs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"audit_logs_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"audit_logs\"\nADD CONSTRAINT \"audit_logs_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"audit_logs_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "audit_logs_user_id_fkey",
+          "public",
+          "\"public\".\"audit_logs\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.audit_logs.audit_logs_actor_user_id_fkey",
+    "label": "Add foreign key \"audit_logs_actor_user_id_fkey\" on \"audit_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "audit_logs_actor_user_id_fkey",
+        "table": "audit_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"audit_logs_actor_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "audit_logs_actor_user_id_fkey",
+          "public",
+          "\"public\".\"audit_logs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"audit_logs_actor_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"audit_logs\"\nADD CONSTRAINT \"audit_logs_actor_user_id_fkey\"\nFOREIGN KEY (\"actor_user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"audit_logs_actor_user_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "audit_logs_actor_user_id_fkey",
+          "public",
+          "\"public\".\"audit_logs\""
+        ]
+      }
+    ]
+  }
+]

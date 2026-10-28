@@ -202,6 +202,25 @@ export class PrismaAuthSessionsRepository implements AuthSessionsRepository {
     return row ? this.mapToSessionRecord(row) : null;
   }
 
+  async findByIdForUpdate(
+    sessionId: string,
+    tx: TransactionClient,
+  ): Promise<SessionRecord | null> {
+    const lockSession = this.prisma.db.raw
+      .sql`SELECT id FROM auth_sessions WHERE id = ${sessionId} FOR UPDATE`
+      .returnsRow({ id: 'pg/uuid@1' })
+      .build();
+
+    for await (const _row of tx.query(lockSession)) {
+      const session = await tx.orm.public.AuthSession.where({
+        id: sessionId,
+      }).first();
+      return session ? this.mapToSessionRecord(session) : null;
+    }
+
+    return null;
+  }
+
   private mapToSessionRecord(row: AuthSessionFields): SessionRecord {
     return Object.freeze({
       id: row.id,

@@ -1,4 +1,9 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import {
+  AUDIT_LOG_REPOSITORY,
+  type AuditLogRepository,
+} from '../../audit/audit-log.repository.js';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
 import {
@@ -41,7 +46,6 @@ import {
   type PasswordResetChallengesRepository,
 } from './password-reset.repository.js';
 import { PasswordHasher } from './password.hasher.js';
-import { PinoLogger } from 'nestjs-pino';
 
 const GENERIC_FORGOT_RESPONSE: ForgotPasswordResponseDto = {
   message:
@@ -63,6 +67,8 @@ export class PasswordResetService {
     private readonly unitOfWork: PrismaUnitOfWork,
     @Inject(AUTH_SESSIONS_REPOSITORY)
     private readonly sessionRepository: AuthSessionsRepository,
+    @Inject(AUDIT_LOG_REPOSITORY)
+    private readonly auditLogRepository: AuditLogRepository,
     private readonly logger: PinoLogger,
     private readonly otpService: OtpService,
     private readonly passwordHasher: PasswordHasher,
@@ -164,6 +170,8 @@ export class PasswordResetService {
     const passwordHash = await this.passwordHasher.hash(dto.newPassword);
 
     await this.unitOfWork.run(async (tx) => {
+      await this.userRepository.lockForUpdate(user.id, tx);
+
       const consumed = await this.passwordResetChallenge.consumeIfActive(
         challenge.id,
         tx,
@@ -179,6 +187,14 @@ export class PasswordResetService {
         user.id,
         'PASSWORD_CHANGE',
         undefined,
+        tx,
+      );
+
+      await this.auditLogRepository.record(
+        {
+          userId: user.id,
+          eventType: 'PASSWORD_RESET',
+        },
         tx,
       );
     });

@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import type { PinoLogger } from 'nestjs-pino';
 import { vi } from 'vitest';
+import type { AuditLogRepository } from '../../audit/audit-log.repository.js';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
 import type { EmailProvider } from '../../email/email-provider.js';
@@ -21,8 +22,12 @@ function createService(passwordUpdated: boolean) {
   const sessions = {
     revokeAllForUser: vi.fn().mockResolvedValue(undefined),
   } as unknown as AuthSessionsRepository;
+  const auditLog = {
+    record: vi.fn().mockResolvedValue(undefined),
+  } as unknown as AuditLogRepository;
   const users = {
     getUserById: vi.fn().mockResolvedValue(null),
+    lockForUpdate: vi.fn().mockResolvedValue(undefined),
   } as unknown as UsersRepository;
   const email = {
     send: vi.fn(),
@@ -48,11 +53,13 @@ function createService(passwordUpdated: boolean) {
       users,
       email,
       sessions,
+      auditLog,
       hasher,
       logger,
     ),
     passwords,
     sessions,
+    auditLog,
     transaction,
     users,
   };
@@ -65,7 +72,8 @@ describe('PasswordManagementService.changePassword', () => {
   };
 
   it('changes the password only while the verified hash is still current', async () => {
-    const { passwords, service, sessions, transaction } = createService(true);
+    const { auditLog, passwords, service, sessions, transaction, users } =
+      createService(true);
 
     await expect(
       service.changePassword('user-id', 'current-session-id', dto),
@@ -80,11 +88,25 @@ describe('PasswordManagementService.changePassword', () => {
       'new-password-hash',
       transaction,
     );
+    expect(users.lockForUpdate).toHaveBeenCalledWith('user-id', transaction);
     expect(sessions.revokeAllForUser).toHaveBeenCalledWith(
       'user-id',
       'PASSWORD_CHANGE',
       'current-session-id',
       transaction,
+    );
+    expect(auditLog.record).toHaveBeenCalledWith(
+      {
+        userId: 'user-id',
+        eventType: 'PASSWORD_CHANGED',
+      },
+      transaction,
+    );
+    expect(
+      vi.mocked(users.lockForUpdate).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(passwords.updateHashForUserIfCurrent).mock
+        .invocationCallOrder[0],
     );
     expect(
       vi.mocked(passwords.updateHashForUserIfCurrent).mock
@@ -92,10 +114,13 @@ describe('PasswordManagementService.changePassword', () => {
     ).toBeLessThan(
       vi.mocked(sessions.revokeAllForUser).mock.invocationCallOrder[0],
     );
+    expect(
+      vi.mocked(sessions.revokeAllForUser).mock.invocationCallOrder[0],
+    ).toBeLessThan(vi.mocked(auditLog.record).mock.invocationCallOrder[0]);
   });
 
   it('aborts without revoking sessions when another request wins the race', async () => {
-    const { passwords, service, sessions, transaction, users } =
+    const { auditLog, passwords, service, sessions, transaction, users } =
       createService(false);
 
     await expect(
@@ -112,6 +137,7 @@ describe('PasswordManagementService.changePassword', () => {
       transaction,
     );
     expect(sessions.revokeAllForUser).not.toHaveBeenCalled();
+    expect(auditLog.record).not.toHaveBeenCalled();
     expect(users.getUserById).not.toHaveBeenCalled();
   });
 });

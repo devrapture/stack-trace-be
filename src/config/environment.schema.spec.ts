@@ -9,6 +9,11 @@ const validEnvironment = {
   JWT_KID: 'test-key',
   JWT_PRIVATE_KEY: 'test-private-key',
   JWT_PUBLIC_KEY: 'test-public-key',
+  GOOGLE_CLIENT_ID: 'google-client-id',
+  GOOGLE_CLIENT_SECRET: 'google-client-secret',
+  GITHUB_CLIENT_ID: 'github-client-id',
+  GITHUB_CLIENT_SECRET: 'github-client-secret',
+  PUBLIC_BASE_URL: 'http://localhost:3000',
 };
 
 const requiredVariables = [
@@ -18,6 +23,10 @@ const requiredVariables = [
   'JWT_KID',
   'JWT_PRIVATE_KEY',
   'JWT_PUBLIC_KEY',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET',
 ] as const;
 
 describe('environmentSchema configuration', () => {

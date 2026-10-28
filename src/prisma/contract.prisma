@@ -7,7 +7,7 @@ enum UserStatus {
 }
 
 enum UserRole {
-  USER
+  PLAYER
   ADMIN
 }
 
@@ -37,23 +37,47 @@ enum SessionRevokedReason {
   ADMIN
 }
 
-model User {
-  id                          Uuid                         @id @default(uuid())
-  publicId                    Uuid                         @unique @default(uuid())
-  displayName                 String?                      @map("display_name")
-  avatarUrl                   String?                      @map("avatar_url")
-  role                        UserRole                     @default(USER)
-  status                      UserStatus                   @default(PENDING)
-  lastLoginAt                 Timestamptz(3)?              @map("last_login_at")
-  passwordRecoveryNoticeSentAt Timestamptz(3)?            @map("password_recovery_notice_sent_at")
-  createdAt                   Timestamptz                  @map("created_at") @default(now())
-  updatedAt                   temporal.updatedAt()         @map("updated_at")
+enum OAuthProviderType {
+  GOOGLE
+  GITHUB
+}
 
-  email                       UserEmail[]
-  authIdentities              AuthIdentity[]
-  authSessions                AuthSession[]
-  emailVerificationChallenges EmailVerificationChallenge[]
-  passwordResetChallenge      PasswordResetChallenge[]
+enum OAuthIntent {
+  LOGIN
+  LINK
+}
+
+enum AuditEventType {
+  PASSWORD_RESET
+  PASSWORD_CHANGED
+  PASSWORD_ADDED
+  PROVIDER_LINKED
+  PROVIDER_UNLINKED
+  ADMIN_ROLE_GRANTED
+  ADMIN_ROLE_REVOKED
+}
+
+model User {
+  id                           Uuid                         @id @default(uuid())
+  publicId                     Uuid                         @unique @default(uuid())
+  displayName                  String?                      @map("display_name")
+  avatarUrl                    String?                      @map("avatar_url")
+  role                         UserRole                     @default(PLAYER)
+  status                       UserStatus                   @default(PENDING)
+  lastLoginAt                  Timestamptz(3)?              @map("last_login_at")
+  passwordRecoveryNoticeSentAt Timestamptz(3)?              @map("password_recovery_notice_sent_at")
+  createdAt                    Timestamptz                  @map("created_at") @default(now())
+  updatedAt                    temporal.updatedAt()         @map("updated_at")
+
+  email                        UserEmail[]
+  authIdentities               AuthIdentity[]
+  authSessions                 AuthSession[]
+  emailVerificationChallenges  EmailVerificationChallenge[]
+  passwordResetChallenge       PasswordResetChallenge[]
+  oauthStates                  OAuthState[]
+  oauthLinkChallenges          OAuthLinkChallenge[]
+  auditLogsAsSubject           AuditLog[]                   @relation("AuditLogSubject")
+  auditLogsAsActor             AuditLog[]                   @relation("AuditLogActor")
 
   @@map("users")
 }
@@ -143,6 +167,7 @@ model AuthSession {
   revokedReason     SessionRevokedReason? @map("revoked_reason")
 
   user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauthLinkStates   OAuthState[]
 
   @@index([userId])
   @@map("auth_sessions")
@@ -164,4 +189,64 @@ model PasswordResetChallenge {
 
   @@index([userId])
   @@map("password_reset_challenge")
+}
+
+model OAuthState {
+  id               Uuid              @id @default(uuid())
+  provider         OAuthProviderType
+  intent           OAuthIntent
+  state            String            @unique
+  nonce            String?
+  pkceVerifier     String?           @map("pkce_verifier")
+  redirectUri      String            @map("redirect_uri")
+  clientType       SessionClientType @map("client_type")
+  linkingUserId    Uuid?             @map("linking_user_id")
+  linkingSessionId Uuid?             @map("linking_session_id")
+  expiresAt        Timestamptz(3)    @map("expires_at")
+  consumedAt       Timestamptz(3)?   @map("consumed_at")
+
+  createdAt        Timestamptz(3)    @map("created_at") @default(now())
+
+  linkingUser      User?             @relation(fields: [linkingUserId], references: [id], onDelete: Cascade)
+  linkingSession   AuthSession?      @relation(fields: [linkingSessionId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([linkingSessionId])
+  @@map("oauth_states")
+}
+
+model OAuthLinkChallenge {
+  id              Uuid                 @id @default(uuid())
+  userId          Uuid                 @map("user_id")
+  provider        OAuthProviderType
+  providerSubject String               @map("provider_subject")
+  otpHash         String               @map("otp_hash")
+  expiresAt       Timestamptz(3)       @map("expires_at")
+  attemptCount    Int                  @default(0) @map("attempt_count")
+  maxAttempts     Int                  @default(5) @map("max_attempts")
+  consumedAt      Timestamptz(3)?      @map("consumed_at")
+  updatedAt       temporal.updatedAt() @map("updated_at")
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       Timestamptz(3)       @map("created_at") @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("oauth_link_challenges")
+}
+
+model AuditLog {
+  id          Uuid           @id @default(uuid())
+  userId      Uuid?          @map("user_id")
+  actorUserId Uuid?          @map("actor_user_id")
+  eventType   AuditEventType @map("event_type")
+  metadata    Jsonb?
+  createdAt   Timestamptz(3) @map("created_at") @default(now())
+  user        User?          @relation("AuditLogSubject", fields: [userId], references: [id], onDelete: SetNull)
+  actor       User?          @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt, id])
+  @@index([eventType])
+  @@map("audit_logs")
 }

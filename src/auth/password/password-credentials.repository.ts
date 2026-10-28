@@ -25,5 +25,8 @@ export interface PasswordCredentialsRepository {
     newPasswordHash: string,
     tx: TransactionClient,
   ): Promise<boolean>;
-  findHashByUserId(userId: string): Promise<string | null>;
+  findHashByUserId(
+    userId: string,
+    tx?: TransactionClient,
+  ): Promise<string | null>;
 }

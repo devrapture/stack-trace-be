@@ -27,7 +27,7 @@ const activeSession: SessionRecord = {
 const activeUser: UserProfile = {
   id: 'user-id',
   publicId: 'public-id',
-  role: 'USER',
+  role: 'PLAYER',
   status: 'ACTIVE',
   avatarUrl: null,
   primaryEmail: {

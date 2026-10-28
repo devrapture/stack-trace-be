@@ -6,11 +6,11 @@ import {
 import { AccessTokenService } from './access-token.service.js';
 import {
   AUTH_SESSIONS_REPOSITORY,
-  SessionClientTypeName,
   SessionRevokedReasonName,
   type AuthSessionsRepository,
 } from './auth-sessions.repository.js';
 import { generateRefreshToken, hashRefreshToken } from './refresh-token.js';
+import type { SessionClientTypeName } from './session-client-type.js';
 import {
   InvalidRefreshTokenError,
   RefreshTokenReuseDetectedError,

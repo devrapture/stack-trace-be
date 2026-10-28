@@ -4,6 +4,10 @@
   "target": "postgres",
   "profileHash": "3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2",
   "roots": {
+    "audit_logs": {
+      "model": "AuditLog",
+      "namespace": "public"
+    },
     "auth_identities": {
       "model": "AuthIdentity",
       "namespace": "public"
@@ -14,6 +18,14 @@
     },
     "email_verification_challenges": {
       "model": "EmailVerificationChallenge",
+      "namespace": "public"
+    },
+    "oauth_link_challenges": {
+      "model": "OAuthLinkChallenge",
+      "namespace": "public"
+    },
+    "oauth_states": {
+      "model": "OAuthState",
       "namespace": "public"
     },
     "password_credential": {
@@ -37,6 +49,39 @@
     "namespaces": {
       "public": {
         "enum": {
+          "AuditEventType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "PASSWORD_RESET",
+                "value": "PASSWORD_RESET"
+              },
+              {
+                "name": "PASSWORD_CHANGED",
+                "value": "PASSWORD_CHANGED"
+              },
+              {
+                "name": "PASSWORD_ADDED",
+                "value": "PASSWORD_ADDED"
+              },
+              {
+                "name": "PROVIDER_LINKED",
+                "value": "PROVIDER_LINKED"
+              },
+              {
+                "name": "PROVIDER_UNLINKED",
+                "value": "PROVIDER_UNLINKED"
+              },
+              {
+                "name": "ADMIN_ROLE_GRANTED",
+                "value": "ADMIN_ROLE_GRANTED"
+              },
+              {
+                "name": "ADMIN_ROLE_REVOKED",
+                "value": "ADMIN_ROLE_REVOKED"
+              }
+            ]
+          },
           "AuthProvider": {
             "codecId": "pg/text@1",
             "members": [
@@ -60,6 +105,32 @@
               {
                 "name": "REGISTRATION",
                 "value": "REGISTRATION"
+              }
+            ]
+          },
+          "OAuthIntent": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "LOGIN",
+                "value": "LOGIN"
+              },
+              {
+                "name": "LINK",
+                "value": "LINK"
+              }
+            ]
+          },
+          "OAuthProviderType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "GOOGLE",
+                "value": "GOOGLE"
+              },
+              {
+                "name": "GITHUB",
+                "value": "GITHUB"
               }
             ]
           },
@@ -117,8 +188,8 @@
             "codecId": "pg/text@1",
             "members": [
               {
-                "name": "USER",
-                "value": "USER"
+                "name": "PLAYER",
+                "value": "PLAYER"
               },
               {
                 "name": "ADMIN",
@@ -149,6 +220,119 @@
           }
         },
         "models": {
+          "AuditLog": {
+            "fields": {
+              "actorUserId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "eventType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "AuditEventType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "metadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "actor": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "actorUserId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "actorUserId": {
+                  "column": "actor_user_id"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "eventType": {
+                  "column": "event_type"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "metadata": {
+                  "column": "metadata"
+                },
+                "userId": {
+                  "column": "user_id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "audit_logs"
+            }
+          },
           "AuthIdentity": {
             "fields": {
               "createdAt": {
@@ -368,6 +552,21 @@
               }
             },
             "relations": {
+              "oauthLinkStates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "linkingSessionId"
+                  ]
+                },
+                "to": {
+                  "model": "OAuthState",
+                  "namespace": "public"
+                }
+              },
               "user": {
                 "cardinality": "N:1",
                 "nullable": false,
@@ -566,6 +765,360 @@
               },
               "namespaceId": "public",
               "table": "email_verification_challenges"
+            }
+          },
+          "OAuthLinkChallenge": {
+            "fields": {
+              "attemptCount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "consumedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "maxAttempts": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "otpHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OAuthProviderType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "providerSubject": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "attemptCount": {
+                  "column": "attempt_count"
+                },
+                "consumedAt": {
+                  "column": "consumed_at"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "expiresAt": {
+                  "column": "expires_at"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "maxAttempts": {
+                  "column": "max_attempts"
+                },
+                "otpHash": {
+                  "column": "otp_hash"
+                },
+                "provider": {
+                  "column": "provider"
+                },
+                "providerSubject": {
+                  "column": "provider_subject"
+                },
+                "updatedAt": {
+                  "column": "updated_at"
+                },
+                "userId": {
+                  "column": "user_id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "oauth_link_challenges"
+            }
+          },
+          "OAuthState": {
+            "fields": {
+              "clientType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "SessionClientType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "consumedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "intent": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OAuthIntent",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "linkingSessionId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "linkingUserId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "nonce": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pkceVerifier": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "provider": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OAuthProviderType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "redirectUri": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "state": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "linkingSession": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "linkingSessionId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "AuthSession",
+                  "namespace": "public"
+                }
+              },
+              "linkingUser": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "linkingUserId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "clientType": {
+                  "column": "client_type"
+                },
+                "consumedAt": {
+                  "column": "consumed_at"
+                },
+                "createdAt": {
+                  "column": "created_at"
+                },
+                "expiresAt": {
+                  "column": "expires_at"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "intent": {
+                  "column": "intent"
+                },
+                "linkingSessionId": {
+                  "column": "linking_session_id"
+                },
+                "linkingUserId": {
+                  "column": "linking_user_id"
+                },
+                "nonce": {
+                  "column": "nonce"
+                },
+                "pkceVerifier": {
+                  "column": "pkce_verifier"
+                },
+                "provider": {
+                  "column": "provider"
+                },
+                "redirectUri": {
+                  "column": "redirect_uri"
+                },
+                "state": {
+                  "column": "state"
+                }
+              },
+              "namespaceId": "public",
+              "table": "oauth_states"
             }
           },
           "PasswordCredential": {
@@ -862,6 +1415,36 @@
               }
             },
             "relations": {
+              "auditLogsAsActor": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "actorUserId"
+                  ]
+                },
+                "to": {
+                  "model": "AuditLog",
+                  "namespace": "public"
+                }
+              },
+              "auditLogsAsSubject": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "AuditLog",
+                  "namespace": "public"
+                }
+              },
               "authIdentities": {
                 "cardinality": "1:N",
                 "on": {
@@ -919,6 +1502,36 @@
                 },
                 "to": {
                   "model": "EmailVerificationChallenge",
+                  "namespace": "public"
+                }
+              },
+              "oauthLinkChallenges": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "OAuthLinkChallenge",
+                  "namespace": "public"
+                }
+              },
+              "oauthStates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "linkingUserId"
+                  ]
+                },
+                "to": {
+                  "model": "OAuthState",
                   "namespace": "public"
                 }
               },
@@ -1095,6 +1708,137 @@
       "public": {
         "entries": {
           "table": {
+            "audit_logs": {
+              "checks": [
+                {
+                  "expression": "\"event_type\" IN ('PASSWORD_RESET', 'PASSWORD_CHANGED', 'PASSWORD_ADDED', 'PROVIDER_LINKED', 'PROVIDER_UNLINKED', 'ADMIN_ROLE_GRANTED', 'ADMIN_ROLE_REVOKED')",
+                  "name": "audit_logs_event_type_check_a7c68cf2",
+                  "prefix": "audit_logs_event_type_check"
+                }
+              ],
+              "columns": {
+                "actor_user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": true
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "event_type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "AuditEventType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "metadata": {
+                  "codecId": "pg/jsonb@1",
+                  "nativeType": "jsonb",
+                  "nullable": true
+                },
+                "user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": true
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "audit_logs"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                },
+                {
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "actor_user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "audit_logs"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "actor_user_id"
+                  ],
+                  "name": "audit_logs_actor_user_id_idx_c46ca325",
+                  "prefix": "audit_logs_actor_user_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "created_at",
+                    "id"
+                  ],
+                  "name": "audit_logs_created_at_id_idx_d7da240a",
+                  "prefix": "audit_logs_created_at_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "event_type"
+                  ],
+                  "name": "audit_logs_event_type_idx_8ee05680",
+                  "prefix": "audit_logs_event_type_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "user_id"
+                  ],
+                  "name": "audit_logs_user_id_idx_6c952402",
+                  "prefix": "audit_logs_user_id_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "auth_identities": {
               "checks": [
                 {
@@ -1466,6 +2210,333 @@
               },
               "uniques": []
             },
+            "oauth_link_challenges": {
+              "checks": [
+                {
+                  "expression": "\"provider\" IN ('GOOGLE', 'GITHUB')",
+                  "name": "oauth_link_challenges_provider_check_5918ff78",
+                  "prefix": "oauth_link_challenges_provider_check"
+                }
+              ],
+              "columns": {
+                "attempt_count": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "consumed_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "expires_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "max_attempts": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 5
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "otp_hash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "provider": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OAuthProviderType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "provider_subject": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updated_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "oauth_link_challenges"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "expires_at"
+                  ],
+                  "name": "oauth_link_challenges_expires_at_idx_35365ada",
+                  "prefix": "oauth_link_challenges_expires_at_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "user_id"
+                  ],
+                  "name": "oauth_link_challenges_user_id_idx_6c952402",
+                  "prefix": "oauth_link_challenges_user_id_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "oauth_states": {
+              "checks": [
+                {
+                  "expression": "\"client_type\" IN ('WEB', 'IOS', 'ANDROID', 'OTHER')",
+                  "name": "oauth_states_client_type_check_a9640be8",
+                  "prefix": "oauth_states_client_type_check"
+                },
+                {
+                  "expression": "\"intent\" IN ('LOGIN', 'LINK')",
+                  "name": "oauth_states_intent_check_3c7e161e",
+                  "prefix": "oauth_states_intent_check"
+                },
+                {
+                  "expression": "\"provider\" IN ('GOOGLE', 'GITHUB')",
+                  "name": "oauth_states_provider_check_5918ff78",
+                  "prefix": "oauth_states_provider_check"
+                }
+              ],
+              "columns": {
+                "client_type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "SessionClientType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "consumed_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "created_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "expires_at": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "intent": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OAuthIntent",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "linking_session_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": true
+                },
+                "linking_user_id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": true
+                },
+                "nonce": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "pkce_verifier": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "provider": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OAuthProviderType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "redirect_uri": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "state": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "linking_user_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "oauth_states"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "linking_session_id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "oauth_states"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "auth_sessions"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "expires_at"
+                  ],
+                  "name": "oauth_states_expires_at_idx_35365ada",
+                  "prefix": "oauth_states_expires_at_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "linking_session_id"
+                  ],
+                  "name": "oauth_states_linking_session_id_idx_cc1618f9",
+                  "prefix": "oauth_states_linking_session_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "linking_user_id"
+                  ],
+                  "name": "oauth_states_linking_user_id_idx_db1e27f9",
+                  "prefix": "oauth_states_linking_user_id_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "state"
+                  ]
+                }
+              ]
+            },
             "password_credential": {
               "columns": {
                 "auth_identity_id": {
@@ -1733,8 +2804,8 @@
             "users": {
               "checks": [
                 {
-                  "expression": "\"role\" IN ('USER', 'ADMIN')",
-                  "name": "users_role_check_1954e8c0",
+                  "expression": "\"role\" IN ('PLAYER', 'ADMIN')",
+                  "name": "users_role_check_f6d86ad7",
                   "prefix": "users_role_check"
                 },
                 {
@@ -1793,7 +2864,7 @@
                   "codecId": "pg/text@1",
                   "default": {
                     "kind": "literal",
-                    "value": "USER"
+                    "value": "PLAYER"
                   },
                   "nativeType": "text",
                   "nullable": false,
@@ -1842,6 +2913,18 @@
             }
           },
           "valueSet": {
+            "AuditEventType": {
+              "kind": "valueSet",
+              "values": [
+                "PASSWORD_RESET",
+                "PASSWORD_CHANGED",
+                "PASSWORD_ADDED",
+                "PROVIDER_LINKED",
+                "PROVIDER_UNLINKED",
+                "ADMIN_ROLE_GRANTED",
+                "ADMIN_ROLE_REVOKED"
+              ]
+            },
             "AuthProvider": {
               "kind": "valueSet",
               "values": [
@@ -1854,6 +2937,20 @@
               "kind": "valueSet",
               "values": [
                 "REGISTRATION"
+              ]
+            },
+            "OAuthIntent": {
+              "kind": "valueSet",
+              "values": [
+                "LOGIN",
+                "LINK"
+              ]
+            },
+            "OAuthProviderType": {
+              "kind": "valueSet",
+              "values": [
+                "GOOGLE",
+                "GITHUB"
               ]
             },
             "SessionClientType": {
@@ -1879,7 +2976,7 @@
             "UserRole": {
               "kind": "valueSet",
               "values": [
-                "USER",
+                "PLAYER",
                 "ADMIN"
               ]
             },
@@ -1898,10 +2995,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "ab1e5b08e1e11fbe4bd4f8c5c1f13b49cba66530f023ce6bbbfe947ec6cc94f2"
+    "storageHash": "b4e981c291150bcebb88c4daa0c533d99912f4fc5a6665e05a60efab45290f95"
   },
   "execution": {
-    "executionHash": "3ffca77778a03d11510410a0224523b705f2c533727ded80eb8f58c47c132550",
+    "executionHash": "95a81433725b602a304667655f1d5b66411675f1b0c0e9bf0619038b3773e50e",
     "mutations": {
       "defaults": [
         {
@@ -1910,6 +3007,17 @@
             "kind": "generator"
           },
           "ref": {
+            "entry": "audit_logs",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
             "entry": "auth_identities",
             "field": "id",
             "namespace": "public"
@@ -1979,6 +3087,43 @@
           "ref": {
             "entry": "email_verification_challenges",
             "field": "updated_at",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "oauth_link_challenges",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "instantNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "oauth_link_challenges",
+            "field": "updated_at",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "oauth_states",
+            "field": "id",
             "namespace": "public"
           }
         },
