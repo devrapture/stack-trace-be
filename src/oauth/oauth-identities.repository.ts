@@ -30,6 +30,7 @@ export interface OAuthIdentitiesRepository {
   findUserIdByProviderSubject(
     provider: OAuthProviderName,
     providerSubject: string,
+    tx?: TransactionClient,
   ): Promise<string | null>;
 
   createForUser(

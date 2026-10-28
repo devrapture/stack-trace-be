@@ -340,6 +340,7 @@ export class IdentityLinkingService {
           await this.oauthIdentitiesRepository.findUserIdByProviderSubject(
             provider,
             providerSubject,
+            tx,
           );
 
         if (existingOwnerId === userId) return false;

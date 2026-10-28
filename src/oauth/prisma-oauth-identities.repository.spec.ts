@@ -7,6 +7,35 @@ import {
 } from './oauth-identities.repository.js';
 import { PrismaOAuthIdentitiesRepository } from './prisma-oauth-identities.repository.js';
 
+describe('PrismaOAuthIdentitiesRepository.findUserIdByProviderSubject', () => {
+  it('uses the supplied transaction client', async () => {
+    const rootWhere = vi.fn();
+    const first = vi.fn().mockResolvedValue({ userId: 'user-id' });
+    const transactionWhere = vi.fn().mockReturnValue({ first });
+    const prisma = {
+      db: {
+        orm: { public: { AuthIdentity: { where: rootWhere } } },
+      },
+    } as unknown as PrismaService;
+    const tx = {
+      orm: {
+        public: { AuthIdentity: { where: transactionWhere } },
+      },
+    } as unknown as TransactionClient;
+    const repository = new PrismaOAuthIdentitiesRepository(prisma);
+
+    await expect(
+      repository.findUserIdByProviderSubject('GOOGLE', 'google-subject', tx),
+    ).resolves.toBe('user-id');
+
+    expect(transactionWhere).toHaveBeenCalledWith({
+      provider: 'GOOGLE',
+      providerSubject: 'google-subject',
+    });
+    expect(rootWhere).not.toHaveBeenCalled();
+  });
+});
+
 describe('PrismaOAuthIdentitiesRepository.createForUser', () => {
   const createRepository = (error: unknown) => {
     const create = vi.fn().mockRejectedValue(error);

@@ -254,6 +254,7 @@ describe('IdentityLinkingService post-link notifications', () => {
     };
     const issuedSession = { accessToken: 'access-token' };
     const createForUser = vi.fn().mockResolvedValue(undefined);
+    const findUserIdByProviderSubject = vi.fn().mockResolvedValue(null);
     const record = vi.fn().mockResolvedValue(undefined);
     const send = vi.fn().mockRejectedValue(new Error('Resend unavailable'));
     const createSession = vi.fn().mockResolvedValue(issuedSession);
@@ -272,7 +273,7 @@ describe('IdentityLinkingService post-link notifications', () => {
     const service = new IdentityLinkingService(
       {} as never,
       {
-        findUserIdByProviderSubject: vi.fn().mockResolvedValue(null),
+        findUserIdByProviderSubject,
         listForUser: vi.fn().mockResolvedValue([]),
         createForUser,
       } as never,
@@ -300,6 +301,7 @@ describe('IdentityLinkingService post-link notifications', () => {
       service,
       issuedSession,
       createForUser,
+      findUserIdByProviderSubject,
       createSession,
       lockForUpdate,
       findByIdForUpdate,
@@ -364,7 +366,13 @@ describe('IdentityLinkingService post-link notifications', () => {
   });
 
   it('locks the user before the initiating session', async () => {
-    const { service, lockForUpdate, findByIdForUpdate, tx } = createService();
+    const {
+      service,
+      lockForUpdate,
+      findByIdForUpdate,
+      findUserIdByProviderSubject,
+      tx,
+    } = createService();
 
     await service.completeExplicitLink(
       {
@@ -377,6 +385,11 @@ describe('IdentityLinkingService post-link notifications', () => {
 
     expect(lockForUpdate).toHaveBeenCalledWith('user-id', tx);
     expect(findByIdForUpdate).toHaveBeenCalledWith('session-id', tx);
+    expect(findUserIdByProviderSubject).toHaveBeenCalledWith(
+      'GOOGLE',
+      'google-subject',
+      tx,
+    );
     expect(lockForUpdate.mock.invocationCallOrder[0]).toBeLessThan(
       findByIdForUpdate.mock.invocationCallOrder[0],
     );
