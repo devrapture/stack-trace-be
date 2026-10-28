@@ -321,6 +321,8 @@ export class IdentityLinkingService {
   ): Promise<void> {
     try {
       const attached = await this.unitOfWork.run(async (tx) => {
+        await this.userRepository.lockForUpdate(userId, tx);
+
         const session = await this.authSessionsRepository.findByIdForUpdate(
           sessionId,
           tx,

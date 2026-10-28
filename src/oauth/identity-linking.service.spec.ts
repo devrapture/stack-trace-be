@@ -257,6 +257,7 @@ describe('IdentityLinkingService post-link notifications', () => {
     const record = vi.fn().mockResolvedValue(undefined);
     const send = vi.fn().mockRejectedValue(new Error('Resend unavailable'));
     const createSession = vi.fn().mockResolvedValue(issuedSession);
+    const lockForUpdate = vi.fn().mockResolvedValue(undefined);
     const findByIdForUpdate = vi.fn().mockResolvedValue({
       id: 'session-id',
       userId: 'user-id',
@@ -281,6 +282,7 @@ describe('IdentityLinkingService post-link notifications', () => {
       {
         getUserByNormalizedEmail: vi.fn().mockResolvedValue(user),
         getUserById: vi.fn().mockResolvedValue(user),
+        lockForUpdate,
       } as never,
       { send } as never,
       {
@@ -299,6 +301,7 @@ describe('IdentityLinkingService post-link notifications', () => {
       issuedSession,
       createForUser,
       createSession,
+      lockForUpdate,
       findByIdForUpdate,
       record,
       send,
@@ -357,6 +360,25 @@ describe('IdentityLinkingService post-link notifications', () => {
         notification: 'provider_linked',
       }),
       'Provider change succeeded, but the notification email failed',
+    );
+  });
+
+  it('locks the user before the initiating session', async () => {
+    const { service, lockForUpdate, findByIdForUpdate, tx } = createService();
+
+    await service.completeExplicitLink(
+      {
+        linkingUserId: 'user-id',
+        linkingSessionId: 'session-id',
+        provider: 'GOOGLE',
+      } as never,
+      { providerSubject: 'google-subject' } as never,
+    );
+
+    expect(lockForUpdate).toHaveBeenCalledWith('user-id', tx);
+    expect(findByIdForUpdate).toHaveBeenCalledWith('session-id', tx);
+    expect(lockForUpdate.mock.invocationCallOrder[0]).toBeLessThan(
+      findByIdForUpdate.mock.invocationCallOrder[0],
     );
   });
 
