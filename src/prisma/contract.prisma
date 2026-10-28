@@ -227,6 +227,7 @@ model OAuthLinkChallenge {
   createdAt       Timestamptz(3)       @map("created_at") @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
   @@map("oauth_link_challenges")
 }
 

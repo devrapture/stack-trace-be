@@ -9,6 +9,7 @@ import { GithubOauthProvider } from './github-oauth.provider.js';
 import { GoogleOauthProvider } from './google-oauth.provider.js';
 import { OAUTH_IDENTITIES_REPOSITORY } from './oauth-identities.repository.js';
 import { OAUTH_LINK_CHALLENGE_REPOSITORY } from './oauth-link-challenge.repository.js';
+import { OAuthLinkChallengeCleanupService } from './oauth-link-challenge-cleanup.service.js';
 import { OAuthLoginService } from './oauth-login.service.js';
 import { OAuthProviderRegistry } from './oauth-provider-registry.service.js';
 import { OAuthStateCleanupService } from './oauth-state-cleanup.service.js';
@@ -34,6 +35,7 @@ import { IdentityLinkingService } from './identity-linking.service.js';
     GithubOauthProvider,
     OAuthLoginService,
     OAuthStateCleanupService,
+    OAuthLinkChallengeCleanupService,
     OAuthProviderRegistry,
     IdentityLinkingService,
     {
