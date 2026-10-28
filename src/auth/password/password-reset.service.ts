@@ -170,6 +170,8 @@ export class PasswordResetService {
     const passwordHash = await this.passwordHasher.hash(dto.newPassword);
 
     await this.unitOfWork.run(async (tx) => {
+      await this.userRepository.lockForUpdate(user.id, tx);
+
       const consumed = await this.passwordResetChallenge.consumeIfActive(
         challenge.id,
         tx,

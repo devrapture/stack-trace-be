@@ -94,6 +94,8 @@ export class PasswordManagementService {
     const newPasswordHash = await this.passwordHasher.hash(dto.newPassword);
 
     await this.unitOfWork.run(async (tx) => {
+      await this.userRepository.lockForUpdate(userId, tx);
+
       const passwordUpdated =
         await this.passwordCredentialsRepository.updateHashForUserIfCurrent(
           userId,

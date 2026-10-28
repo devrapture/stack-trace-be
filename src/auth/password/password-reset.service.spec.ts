@@ -49,6 +49,7 @@ function createService(options?: {
       .mockResolvedValue(
         options?.user === undefined ? activeUser : options.user,
       ),
+    lockForUpdate: vi.fn().mockResolvedValue(undefined),
   } as unknown as UsersRepository;
   const passwords = {
     findHashByUserId: vi
@@ -133,6 +134,7 @@ function createService(options?: {
     sessions,
     transaction,
     unitOfWork,
+    users,
   };
 }
 
@@ -272,9 +274,16 @@ describe('PasswordResetService.resetPassword', () => {
     expect(sessions.revokeAllForUser).not.toHaveBeenCalled();
   });
 
-  it('consumes the challenge before changing the password', async () => {
-    const { service, auditLog, challenges, passwords, sessions, transaction } =
-      createService();
+  it('locks the user before consuming the challenge and revoking sessions', async () => {
+    const {
+      service,
+      auditLog,
+      challenges,
+      passwords,
+      sessions,
+      transaction,
+      users,
+    } = createService();
 
     await expect(service.resetPassword(dto)).resolves.toEqual({
       message:
@@ -285,10 +294,19 @@ describe('PasswordResetService.resetPassword', () => {
       'challenge-id',
       transaction,
     );
+    expect(users.lockForUpdate).toHaveBeenCalledWith(
+      activeUser.id,
+      transaction,
+    );
     expect(passwords.updateHashForUser).toHaveBeenCalledWith(
       activeUser.id,
       'new-password-hash',
       transaction,
+    );
+    expect(
+      vi.mocked(users.lockForUpdate).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(challenges.consumeIfActive).mock.invocationCallOrder[0],
     );
     expect(
       vi.mocked(challenges.consumeIfActive).mock.invocationCallOrder[0],
@@ -300,6 +318,11 @@ describe('PasswordResetService.resetPassword', () => {
       'PASSWORD_CHANGE',
       undefined,
       transaction,
+    );
+    expect(
+      vi.mocked(users.lockForUpdate).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(sessions.revokeAllForUser).mock.invocationCallOrder[0],
     );
     expect(auditLog.record).toHaveBeenCalledWith(
       {
