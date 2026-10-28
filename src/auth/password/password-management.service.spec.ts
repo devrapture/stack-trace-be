@@ -27,6 +27,7 @@ function createService(passwordUpdated: boolean) {
   } as unknown as AuditLogRepository;
   const users = {
     getUserById: vi.fn().mockResolvedValue(null),
+    lockForUpdate: vi.fn().mockResolvedValue(undefined),
   } as unknown as UsersRepository;
   const email = {
     send: vi.fn(),
@@ -71,7 +72,7 @@ describe('PasswordManagementService.changePassword', () => {
   };
 
   it('changes the password only while the verified hash is still current', async () => {
-    const { auditLog, passwords, service, sessions, transaction } =
+    const { auditLog, passwords, service, sessions, transaction, users } =
       createService(true);
 
     await expect(
@@ -87,6 +88,7 @@ describe('PasswordManagementService.changePassword', () => {
       'new-password-hash',
       transaction,
     );
+    expect(users.lockForUpdate).toHaveBeenCalledWith('user-id', transaction);
     expect(sessions.revokeAllForUser).toHaveBeenCalledWith(
       'user-id',
       'PASSWORD_CHANGE',
@@ -99,6 +101,12 @@ describe('PasswordManagementService.changePassword', () => {
         eventType: 'PASSWORD_CHANGED',
       },
       transaction,
+    );
+    expect(
+      vi.mocked(users.lockForUpdate).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(passwords.updateHashForUserIfCurrent).mock
+        .invocationCallOrder[0],
     );
     expect(
       vi.mocked(passwords.updateHashForUserIfCurrent).mock
