@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import { ErrorCode } from '../common/error/error-codes.js';
+import type { EmailQueue } from '../email/email-queue.js';
 import { IdentityLinkingService } from './identity-linking.service.js';
 import {
   OAuthIdentityAlreadyLinkedError,
@@ -93,10 +94,9 @@ describe('IdentityLinkingService.unlinkProvider', () => {
     const record = vi.fn().mockResolvedValue(undefined);
     const lockForUpdate = vi.fn().mockResolvedValue(undefined);
     const getUserById = vi.fn().mockResolvedValue(null);
-    const send = vi.fn().mockResolvedValue({
-      provider: 'resend',
-      messageId: 'message-id',
-    });
+    const enqueue = vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'test-id' });
     const logger = { error: vi.fn() };
     const run = vi.fn(async (work: (transaction: typeof tx) => Promise<void>) =>
       work(tx),
@@ -109,7 +109,7 @@ describe('IdentityLinkingService.unlinkProvider', () => {
       { run } as never,
       { record } as never,
       { lockForUpdate, getUserById } as never,
-      { send } as never,
+      { enqueue } satisfies EmailQueue,
       {} as never,
       {} as never,
       {} as never,
@@ -127,7 +127,7 @@ describe('IdentityLinkingService.unlinkProvider', () => {
       record,
       lockForUpdate,
       getUserById,
-      send,
+      enqueue,
       logger,
     };
   }
@@ -197,9 +197,9 @@ describe('IdentityLinkingService.unlinkProvider', () => {
     expect(record).not.toHaveBeenCalled();
   });
 
-  it('does not fail the completed unlink when its notification fails', async () => {
-    const { service, getUserById, send, logger, deleteForUser } = createService(
-      [
+  it('does not fail the completed unlink when its notification cannot be queued', async () => {
+    const { service, getUserById, enqueue, logger, deleteForUser } =
+      createService([
         {
           provider: 'GOOGLE',
           providerSubject: 'google-subject',
@@ -210,22 +210,29 @@ describe('IdentityLinkingService.unlinkProvider', () => {
           providerSubject: 'github-subject',
           createdAt: new Date('2026-10-22T00:00:00.000Z'),
         },
-      ],
-    );
+      ]);
     getUserById.mockResolvedValueOnce({
       primaryEmail: { display: 'user@example.com' },
     } as never);
-    const deliveryError = new Error('Resend unavailable');
-    send.mockRejectedValueOnce(deliveryError);
+    const queueError = new Error('Email queue unavailable');
+    enqueue.mockRejectedValueOnce(queueError);
 
     await expect(
       service.unlinkProvider('user-id', 'GOOGLE'),
     ).resolves.toBeUndefined();
 
     expect(deleteForUser).toHaveBeenCalledOnce();
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        kind: 'provider_unlinked',
+        userId: 'user-id',
+        critical: true,
+        message: expect.objectContaining({ to: 'user@example.com' }),
+      }),
+    );
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
-        err: deliveryError,
+        err: queueError,
         userId: 'user-id',
         provider: 'GOOGLE',
         notification: 'provider_unlinked',
@@ -256,7 +263,10 @@ describe('IdentityLinkingService post-link notifications', () => {
     const createForUser = vi.fn().mockResolvedValue(undefined);
     const findUserIdByProviderSubject = vi.fn().mockResolvedValue(null);
     const record = vi.fn().mockResolvedValue(undefined);
-    const send = vi.fn().mockRejectedValue(new Error('Resend unavailable'));
+    const queueError = new Error('Email queue unavailable');
+    const enqueue = vi
+      .fn<EmailQueue['enqueue']>()
+      .mockRejectedValue(queueError);
     const createSession = vi.fn().mockResolvedValue(issuedSession);
     const lockForUpdate = vi.fn().mockResolvedValue(undefined);
     const findByIdForUpdate = vi.fn().mockResolvedValue({
@@ -285,7 +295,7 @@ describe('IdentityLinkingService post-link notifications', () => {
         getUserById: vi.fn().mockResolvedValue(user),
         lockForUpdate,
       } as never,
-      { send } as never,
+      { enqueue } satisfies EmailQueue,
       {
         findActiveForUser: vi.fn().mockResolvedValue(challenge),
         markConsumed: vi.fn().mockResolvedValue(true),
@@ -306,15 +316,23 @@ describe('IdentityLinkingService post-link notifications', () => {
       lockForUpdate,
       findByIdForUpdate,
       record,
-      send,
+      enqueue,
+      queueError,
       logger,
       tx,
     };
   }
 
-  it('creates a session after confirmLink even when its notification fails', async () => {
-    const { service, issuedSession, createForUser, createSession, logger } =
-      createService();
+  it('creates a session after confirmLink even when its notification cannot be queued', async () => {
+    const {
+      service,
+      issuedSession,
+      createForUser,
+      createSession,
+      enqueue,
+      queueError,
+      logger,
+    } = createService();
 
     await expect(
       service.confirmLink({
@@ -328,8 +346,17 @@ describe('IdentityLinkingService post-link notifications', () => {
     expect(createSession).toHaveBeenCalledWith('user-id', {
       clientType: 'WEB',
     });
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        kind: 'provider_linked',
+        userId: 'user-id',
+        critical: true,
+        message: expect.objectContaining({ to: 'user@example.com' }),
+      }),
+    );
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
+        err: queueError,
         userId: 'user-id',
         provider: 'GOOGLE',
         notification: 'provider_linked',
@@ -338,9 +365,16 @@ describe('IdentityLinkingService post-link notifications', () => {
     );
   });
 
-  it('does not fail an explicit link when its notification fails', async () => {
-    const { service, createForUser, findByIdForUpdate, logger, tx } =
-      createService();
+  it('does not fail an explicit link when its notification cannot be queued', async () => {
+    const {
+      service,
+      createForUser,
+      findByIdForUpdate,
+      enqueue,
+      queueError,
+      logger,
+      tx,
+    } = createService();
 
     await expect(
       service.completeExplicitLink(
@@ -355,8 +389,17 @@ describe('IdentityLinkingService post-link notifications', () => {
 
     expect(createForUser).toHaveBeenCalledOnce();
     expect(findByIdForUpdate).toHaveBeenCalledWith('session-id', tx);
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        kind: 'provider_linked',
+        userId: 'user-id',
+        critical: true,
+        message: expect.objectContaining({ to: 'user@example.com' }),
+      }),
+    );
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
+        err: queueError,
         userId: 'user-id',
         provider: 'GOOGLE',
         notification: 'provider_linked',

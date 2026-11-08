@@ -23,7 +23,7 @@ export class PrismaOAuthLinkChallengeRepository implements OAuthLinkChallengeRep
     otpHash: string;
     expiresAt: Date;
     maxAttempts: number;
-  }): Promise<void> {
+  }): Promise<string> {
     const {
       userId,
       provider,
@@ -32,7 +32,7 @@ export class PrismaOAuthLinkChallengeRepository implements OAuthLinkChallengeRep
       maxAttempts,
       expiresAt,
     } = input;
-    await this.db.OAuthLinkChallenge.create({
+    const challenge = await this.db.OAuthLinkChallenge.create({
       userId,
       provider,
       providerSubject,
@@ -40,6 +40,7 @@ export class PrismaOAuthLinkChallengeRepository implements OAuthLinkChallengeRep
       maxAttempts,
       expiresAt: Temporal.Instant.fromEpochMilliseconds(expiresAt.getTime()),
     });
+    return challenge.id;
   }
 
   async findActiveForUser(

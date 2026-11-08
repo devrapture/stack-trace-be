@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import {
   AUDIT_LOG_REPOSITORY,
@@ -6,11 +7,7 @@ import {
 } from '../../audit/audit-log.repository.js';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
-import {
-  EMAIL_PROVIDER,
-  type EmailProvider,
-} from '../../email/email-provider.js';
-import { accountEmail } from '../../email/templates/account-email.js';
+import { EMAIL_QUEUE, type EmailQueue } from '../../email/email-queue.js';
 import { PrismaUnitOfWork } from '../../prisma/prisma-unit-of-work.js';
 import { UNIT_OF_WORK } from '../../prisma/unit-of-work.js';
 import {
@@ -31,6 +28,7 @@ import {
 } from './password-credentials.repository.js';
 import { validatePassword } from './password-policy.js';
 import { PasswordHasher } from './password.hasher.js';
+import { accountEmail } from '../../email/templates/account-email.js';
 
 @Injectable()
 export class PasswordManagementService {
@@ -41,8 +39,8 @@ export class PasswordManagementService {
     private readonly unitOfWork: PrismaUnitOfWork,
     @Inject(USERS_REPOSITORY)
     private userRepository: UsersRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    @Inject(EMAIL_QUEUE)
+    private readonly emailQueue: EmailQueue,
     @Inject(AUTH_SESSIONS_REPOSITORY)
     private readonly sessionRepository: AuthSessionsRepository,
     @Inject(AUDIT_LOG_REPOSITORY)
@@ -132,11 +130,17 @@ export class PasswordManagementService {
       const user = await this.userRepository.getUserById(userId);
 
       if (user?.primaryEmail) {
-        await this.emailProvider.send({
-          to: user.primaryEmail.display,
-          ...accountEmail({
-            type: 'password_changed',
-          }),
+        await this.emailQueue.enqueue({
+          kind: 'password_changed',
+          userId,
+          critical: true,
+          idempotencyKey: randomUUID(),
+          message: {
+            to: user.primaryEmail.display,
+            ...accountEmail({
+              type: 'password_changed',
+            }),
+          },
         });
       }
     } catch (error) {

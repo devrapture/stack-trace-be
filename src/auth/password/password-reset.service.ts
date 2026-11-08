@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import {
   AUDIT_LOG_REPOSITORY,
@@ -7,10 +8,10 @@ import {
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
 import {
-  EMAIL_PROVIDER,
-  type EmailMessage,
-  type EmailProvider,
-} from '../../email/email-provider.js';
+  EMAIL_QUEUE,
+  type EmailQueue,
+  type EnqueueEmailInput,
+} from '../../email/email-queue.js';
 import { accountEmail } from '../../email/templates/account-email.js';
 import { PrismaUnitOfWork } from '../../prisma/prisma-unit-of-work.js';
 import { UNIT_OF_WORK } from '../../prisma/unit-of-work.js';
@@ -59,8 +60,8 @@ export class PasswordResetService {
     private readonly userRepository: UsersRepository,
     @Inject(PASSWORD_CREDENTIALS_REPOSITORY)
     private readonly passwordCredentialsRepository: PasswordCredentialsRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    @Inject(EMAIL_QUEUE)
+    private readonly emailQueue: EmailQueue,
     @Inject(PASSWORD_RESET_REPOSITORY)
     private readonly passwordResetChallenge: PasswordResetChallengesRepository,
     @Inject(UNIT_OF_WORK)
@@ -92,16 +93,18 @@ export class PasswordResetService {
       );
       if (!canSend) return GENERIC_FORGOT_RESPONSE;
 
-      await this.sendRecoveryEmailBestEffort(
-        user.id,
-        'unverified_account_password_reset_notice',
-        {
+      await this.sendRecoveryEmailBestEffort({
+        userId: user.id,
+        kind: 'unverified_account_password_reset_notice',
+        idempotencyKey: randomUUID(),
+        critical: true,
+        message: {
           to: displayEmail,
           ...accountEmail({
             type: 'unverified_account_password_reset_notice',
           }),
         },
-      );
+      });
       return GENERIC_FORGOT_RESPONSE;
     }
 
@@ -115,16 +118,18 @@ export class PasswordResetService {
       );
       if (!canSend) return GENERIC_FORGOT_RESPONSE;
 
-      await this.sendRecoveryEmailBestEffort(
-        user.id,
-        'oauth_only_account_notice',
-        {
+      await this.sendRecoveryEmailBestEffort({
+        userId: user.id,
+        kind: 'oauth_only_account_notice',
+        idempotencyKey: randomUUID(),
+        critical: true,
+        message: {
           to: displayEmail,
           ...accountEmail({
             type: 'oauth_only_account_notice',
           }),
         },
-      );
+      });
       return GENERIC_FORGOT_RESPONSE;
     }
 
@@ -199,23 +204,18 @@ export class PasswordResetService {
       );
     });
 
-    try {
-      await this.emailProvider.send({
+    await this.sendRecoveryEmailBestEffort({
+      kind: 'password_changed',
+      userId: user.id,
+      idempotencyKey: randomUUID(),
+      critical: true,
+      message: {
         to: displayEmail,
         ...accountEmail({
           type: 'password_changed',
         }),
-      });
-    } catch (error) {
-      this.logger.error(
-        {
-          err: error,
-          userId: user.id,
-          notification: 'password_changed',
-        },
-        'Password reset succeeded, but the notification email failed',
-      );
-    }
+      },
+    });
 
     return {
       message:
@@ -241,37 +241,45 @@ export class PasswordResetService {
 
     const otp = this.otpService.generate();
     const otpHash = this.otpService.hash(otp);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    await this.passwordResetChallenge.invalidateActiveAndCreate({
+    const challengeId =
+      await this.passwordResetChallenge.invalidateActiveAndCreate({
+        userId,
+        otpHash,
+        expiresAt,
+        maxAttempts: OTP_MAX_ATTEMPTS,
+        cooldownMs: OTP_RESEND_COOLDOWN_MS,
+      });
+
+    await this.sendRecoveryEmailBestEffort({
       userId,
-      otpHash,
-      expiresAt: new Date(Date.now() + OTP_TTL_MS),
-      maxAttempts: OTP_MAX_ATTEMPTS,
-      cooldownMs: OTP_RESEND_COOLDOWN_MS,
-    });
-
-    await this.sendRecoveryEmailBestEffort(userId, 'password_reset_otp', {
-      to: toEmail,
-      ...accountEmail({
-        type: 'password_reset_otp',
-        otp,
-        expiresInMinutes: OTP_TTL_MS / 60000,
-      }),
+      kind: 'password_reset_otp',
+      challengeId,
+      expiresAt: expiresAt.toISOString(),
+      idempotencyKey: randomUUID(),
+      critical: true,
+      message: {
+        to: toEmail,
+        ...accountEmail({
+          type: 'password_reset_otp',
+          otp,
+          expiresInMinutes: OTP_TTL_MS / 60000,
+        }),
+      },
     });
   }
 
   private async sendRecoveryEmailBestEffort(
-    userId: string,
-    notification: string,
-    message: EmailMessage,
+    input: EnqueueEmailInput,
   ): Promise<void> {
     try {
-      await this.emailProvider.send(message);
+      await this.emailQueue.enqueue(input);
     } catch (error) {
       this.logger.error(
         {
-          userId,
-          notification,
+          userId: input.userId,
+          notification: input.kind,
           errorName: error instanceof Error ? error.name : 'UnknownError',
         },
         'Recovery email delivery failed',

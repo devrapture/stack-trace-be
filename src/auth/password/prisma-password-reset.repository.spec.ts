@@ -56,7 +56,7 @@ describe('PrismaPasswordRepository', () => {
     const first = vi.fn().mockResolvedValue(null);
     const orderBy = vi.fn().mockReturnValue({ first });
     const where = vi.fn().mockReturnValue({ orderBy, updateAll });
-    const create = vi.fn().mockResolvedValue(undefined);
+    const create = vi.fn().mockResolvedValue({ id: 'challenge-id' });
     const tx = {
       query: vi.fn(async function* () {
         yield { id: 'user-id' };
@@ -81,14 +81,14 @@ describe('PrismaPasswordRepository', () => {
           },
         },
         transaction: vi.fn(
-          async (callback: (transaction: typeof tx) => Promise<void>) =>
+          async (callback: (transaction: typeof tx) => Promise<string>) =>
             callback(tx),
         ),
       },
     } as unknown as PrismaService;
 
     const repository = new PrismaPasswordRepository(prisma);
-    await repository.invalidateActiveAndCreate({
+    const challengeId = await repository.invalidateActiveAndCreate({
       userId: 'user-id',
       otpHash: 'otp-hash',
       expiresAt: new Date('2026-10-08T12:00:00.000Z'),
@@ -96,6 +96,7 @@ describe('PrismaPasswordRepository', () => {
       cooldownMs: 60_000,
     });
 
+    expect(challengeId).toBe('challenge-id');
     expect(tx.query).toHaveBeenCalledWith(lockQuery);
     expect(where).toHaveBeenCalledWith({
       userId: 'user-id',

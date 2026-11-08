@@ -46,7 +46,7 @@ export class PrismaPasswordRepository implements PasswordResetChallengesReposito
     expiresAt: Date;
     maxAttempts: number;
     cooldownMs: number;
-  }): Promise<void> {
+  }): Promise<string> {
     const db = this.prisma.db;
 
     const lockUser = db.raw.sql`
@@ -54,7 +54,7 @@ export class PrismaPasswordRepository implements PasswordResetChallengesReposito
     `
       .returnsRow({ id: 'pg/uuid@1' })
       .build();
-    await db.transaction(async (tx) => {
+    return db.transaction(async (tx) => {
       let userFound = false;
       for await (const _row of tx.query(lockUser)) {
         userFound = true;
@@ -93,7 +93,7 @@ export class PrismaPasswordRepository implements PasswordResetChallengesReposito
         consumedAt: now,
       });
 
-      await tx.orm.public.PasswordResetChallenge.create({
+      const challenge = await tx.orm.public.PasswordResetChallenge.create({
         userId: input.userId,
         expiresAt: Temporal.Instant.fromEpochMilliseconds(
           input.expiresAt.getTime(),
@@ -102,6 +102,7 @@ export class PrismaPasswordRepository implements PasswordResetChallengesReposito
         maxAttempts: input.maxAttempts,
         attemptCount: 0,
       });
+      return challenge.id;
     });
   }
 

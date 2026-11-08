@@ -1,4 +1,4 @@
-export const EMAIL_PROVIDER = Symbol('EMAIL_PROVIDER');
+export const EMAIL_TRANSPORT = Symbol('EMAIL_TRANSPORT');
 
 export interface EmailMessage {
   to: string;
@@ -13,6 +13,6 @@ export interface EmailSendResult {
   messageId: string;
 }
 
-export interface EmailProvider {
+export interface EmailTransport {
   send(message: EmailMessage, signal?: AbortSignal): Promise<EmailSendResult>;
 }

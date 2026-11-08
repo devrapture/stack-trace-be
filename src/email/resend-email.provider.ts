@@ -6,12 +6,12 @@ import { ErrorCode } from '../common/error/error-codes.js';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import {
   EmailMessage,
-  EmailProvider,
+  EmailTransport,
   EmailSendResult,
 } from './email-provider.js';
 
 @Injectable()
-export class ResendEmailProvider implements EmailProvider {
+export class ResendEmailTransport implements EmailTransport {
   private readonly resend: Resend;
   private readonly fromHeader: string;
   constructor(
