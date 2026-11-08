@@ -1,7 +1,7 @@
 import {
   Inject,
   Injectable,
-  OnApplicationShutdown,
+  OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
@@ -12,7 +12,7 @@ import {
 } from '../config/database-config.js';
 
 @Injectable()
-export class PgBossService implements OnModuleInit, OnApplicationShutdown {
+export class PgBossService implements OnModuleInit, OnModuleDestroy {
   readonly client: PgBoss;
   constructor(
     @Inject(DATABASE_CONFIG) databaseConfig: DatabaseConfig,
@@ -53,7 +53,7 @@ export class PgBossService implements OnModuleInit, OnApplicationShutdown {
       throw error;
     }
   }
-  async onApplicationShutdown() {
+  async onModuleDestroy() {
     await this.client.stop({
       graceful: true,
       timeout: 30_000,

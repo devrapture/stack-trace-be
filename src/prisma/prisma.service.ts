@@ -1,7 +1,7 @@
 import {
   Inject,
   Injectable,
-  OnModuleDestroy,
+  OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
@@ -12,7 +12,7 @@ import {
 import { createDatabaseClient, type DatabaseClient } from './db.js';
 
 @Injectable()
-export class PrismaService implements OnModuleInit, OnModuleDestroy {
+export class PrismaService implements OnModuleInit, OnApplicationShutdown {
   readonly db: DatabaseClient;
 
   constructor(
@@ -44,7 +44,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
   }
-  async onModuleDestroy() {
+  async onApplicationShutdown() {
+    // Keep Prisma available until database-dependent workers have drained.
     await this.db.close();
   }
 }
