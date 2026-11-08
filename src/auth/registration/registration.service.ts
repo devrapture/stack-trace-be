@@ -1,8 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  EMAIL_PROVIDER,
-  type EmailProvider,
-} from '../../email/email-provider.js';
 import { accountEmail } from '../../email/templates/account-email.js';
 import { normalizeEmail } from '../../users/normalize-email.js';
 import { UserProfile } from '../../users/user.model.js';
@@ -11,7 +7,6 @@ import {
   USERS_REPOSITORY,
   type UsersRepository,
 } from '../../users/users.repository.js';
-import { RegisterDto, RegisterResponseDto } from './register.dto.js';
 import {
   EMAIL_VERIFICATION_REPOSITORY,
   type EmailVerificationChallengesRepository,
@@ -28,6 +23,9 @@ import {
 } from '../password/password-credentials.repository.js';
 import { validatePassword } from '../password/password-policy.js';
 import { PasswordHasher } from '../password/password.hasher.js';
+import { RegisterDto, RegisterResponseDto } from './register.dto.js';
+import { EMAIL_QUEUE, type EmailQueue } from '../../email/email-queue.js';
+import { randomUUID } from 'crypto';
 
 const GENERIC_RESPONSE: RegisterResponseDto = {
   message:
@@ -43,8 +41,8 @@ export class RegistrationService {
     private readonly passwordCredentialsRepository: PasswordCredentialsRepository,
     @Inject(EMAIL_VERIFICATION_REPOSITORY)
     private readonly emailVerificationRepository: EmailVerificationChallengesRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    @Inject(EMAIL_QUEUE)
+    private readonly emailQueue: EmailQueue,
     private readonly passwordHasher: PasswordHasher,
     private readonly otpService: OtpService,
   ) {}
@@ -93,11 +91,17 @@ export class RegistrationService {
       await this.passwordCredentialsRepository.findHashByUserId(user.id);
 
     if (existingHash && (user.status !== 'PENDING' || primaryEmail.verified)) {
-      await this.emailProvider.send({
-        to: primaryEmail.normalized,
-        ...accountEmail({
-          type: 'existing_account_notice',
-        }),
+      await this.emailQueue.enqueue({
+        kind: 'existing_account_notice',
+        userId: user.id,
+        idempotencyKey: randomUUID(),
+        critical: true,
+        message: {
+          to: primaryEmail.normalized,
+          ...accountEmail({
+            type: 'existing_account_notice',
+          }),
+        },
       });
       return;
     }
@@ -112,11 +116,17 @@ export class RegistrationService {
       return;
     }
 
-    await this.emailProvider.send({
-      to: primaryEmail.normalized,
-      ...accountEmail({
-        type: 'oauth_only_account_notice',
-      }),
+    await this.emailQueue.enqueue({
+      kind: 'oauth_only_account_notice',
+      userId: user.id,
+      idempotencyKey: randomUUID(),
+      critical: true,
+      message: {
+        to: primaryEmail.normalized,
+        ...accountEmail({
+          type: 'oauth_only_account_notice',
+        }),
+      },
     });
   }
 
@@ -138,13 +148,20 @@ export class RegistrationService {
       passwordHash,
     });
 
-    await this.emailProvider.send({
-      to: toEmail,
-      ...accountEmail({
-        type: 'registration_otp',
-        otp,
-        expiresInMinutes: OTP_TTL_MS / 60_000,
-      }),
+    await this.emailQueue.enqueue({
+      kind: 'registration_otp',
+      userId: userId,
+      idempotencyKey: randomUUID(),
+      critical: true,
+      expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+      message: {
+        to: toEmail,
+        ...accountEmail({
+          type: 'registration_otp',
+          otp,
+          expiresInMinutes: OTP_TTL_MS / 60_000,
+        }),
+      },
     });
   }
 }

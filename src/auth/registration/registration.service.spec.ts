@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { EmailProvider } from '../../email/email-provider.js';
+import type { EmailQueue } from '../../email/email-queue.js';
 import type { UserProfile } from '../../users/user.model.js';
 import type { UsersRepository } from '../../users/users.repository.js';
 import type { EmailVerificationChallengesRepository } from '../email-verification/email-verification.repository.js';
@@ -39,10 +39,10 @@ function createService(user: UserProfile) {
   } as unknown as EmailVerificationChallengesRepository;
 
   const email = {
-    send: vi
-      .fn()
-      .mockResolvedValue({ provider: 'resend', messageId: 'test-id' }),
-  } as unknown as EmailProvider;
+    enqueue: vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'test-id' }),
+  } satisfies EmailQueue;
 
   const hasher = {
     hash: vi.fn().mockResolvedValue('new-hash'),
@@ -69,7 +69,7 @@ function createService(user: UserProfile) {
 }
 
 describe('RegistrationService.register with an existing email', () => {
-  it('resumes a pending password registration and sends an OTP', async () => {
+  it('resumes a pending password registration and queues an OTP', async () => {
     const { service, passwords, challenges, email } =
       createService(pendingUser);
 
@@ -88,15 +88,21 @@ describe('RegistrationService.register with an existing email', () => {
     );
     expect(passwords.updateHashForUser).not.toHaveBeenCalled();
 
-    expect(email.send).toHaveBeenCalledWith(
+    expect(email.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: pendingUser.primaryEmail?.display,
-        subject: 'Verify your email to join Stack Trace',
+        kind: 'registration_otp',
+        userId: pendingUser.id,
+        critical: true,
+        expiresAt: expect.any(String),
+        message: expect.objectContaining({
+          to: pendingUser.primaryEmail?.display,
+          subject: 'Verify your email to join Stack Trace',
+        }),
       }),
     );
   });
 
-  it('sends an account notice instead of an OTP for an active account', async () => {
+  it('queues an account notice instead of an OTP for an active account', async () => {
     const { service, challenges, email } = createService({
       ...pendingUser,
       status: 'ACTIVE',
@@ -109,15 +115,20 @@ describe('RegistrationService.register with an existing email', () => {
 
     expect(challenges.issueWithCooldown).not.toHaveBeenCalled();
 
-    expect(email.send).toHaveBeenCalledWith(
+    expect(email.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: pendingUser.primaryEmail?.normalized,
-        subject: 'Someone tried to register with your email',
+        kind: 'existing_account_notice',
+        userId: pendingUser.id,
+        critical: true,
+        message: expect.objectContaining({
+          to: pendingUser.primaryEmail?.normalized,
+          subject: 'Someone tried to register with your email',
+        }),
       }),
     );
   });
 
-  it('does not send an OTP when the cooldown rejects issuance', async () => {
+  it('does not queue an OTP when the cooldown rejects issuance', async () => {
     const { service, passwords, challenges, email } =
       createService(pendingUser);
     vi.mocked(challenges.issueWithCooldown).mockRejectedValue(
@@ -135,6 +146,6 @@ describe('RegistrationService.register with an existing email', () => {
       expect.objectContaining({ passwordHash: 'new-hash' }),
     );
     expect(passwords.updateHashForUser).not.toHaveBeenCalled();
-    expect(email.send).not.toHaveBeenCalled();
+    expect(email.enqueue).not.toHaveBeenCalled();
   });
 });

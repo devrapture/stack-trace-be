@@ -1,14 +1,17 @@
 import type { PinoLogger } from 'nestjs-pino';
 import { vi } from 'vitest';
 import type { AuditLogRepository } from '../../audit/audit-log.repository.js';
-import type { EmailProvider } from '../../email/email-provider.js';
+import type { EmailQueue } from '../../email/email-queue.js';
 import type { TransactionClient } from '../../prisma/db.js';
 import type { PrismaUnitOfWork } from '../../prisma/prisma-unit-of-work.js';
 import type { AuthSessionsRepository } from '../../sessions/auth-sessions.repository.js';
 import type { UserProfile } from '../../users/user.model.js';
 import type { UsersRepository } from '../../users/users.repository.js';
 import type { OtpService } from '../email-verification/otp.service.js';
-import { OTP_RESEND_COOLDOWN_MS } from '../email-verification/otp.service.js';
+import {
+  OTP_RESEND_COOLDOWN_MS,
+  OTP_TTL_MS,
+} from '../email-verification/otp.service.js';
 import type { PasswordCredentialsRepository } from './password-credentials.repository.js';
 import type { PasswordResetChallengesRepository } from './password-reset.repository.js';
 import { PasswordResetService } from './password-reset.service.js';
@@ -62,10 +65,10 @@ function createService(options?: {
     updateHashForUser: vi.fn().mockResolvedValue(undefined),
   } as unknown as PasswordCredentialsRepository;
   const email = {
-    send: vi
-      .fn()
-      .mockResolvedValue({ provider: 'resend', messageId: 'message-id' }),
-  } as unknown as EmailProvider;
+    enqueue: vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'job-id' }),
+  } satisfies EmailQueue;
   const challenges = {
     claimNoticeCooldown: vi
       .fn()
@@ -139,6 +142,74 @@ function createService(options?: {
 }
 
 describe('PasswordResetService.forgotPassword', () => {
+  it('queues a reset OTP with the same expiry as the persisted challenge', async () => {
+    vi.useFakeTimers();
+    try {
+      const now = new Date('2026-11-08T12:00:00.000Z');
+      vi.setSystemTime(now);
+      const { service, challenges, email } = createService();
+      vi.mocked(challenges.invalidateActiveAndCreate).mockImplementation(
+        async () => {
+          vi.advanceTimersByTime(1_000);
+        },
+      );
+      const expiresAt = new Date(now.getTime() + OTP_TTL_MS);
+
+      await expect(
+        service.forgotPassword({ email: 'User@example.com' }),
+      ).resolves.toEqual(genericResponse);
+
+      expect(challenges.invalidateActiveAndCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ expiresAt }),
+      );
+      expect(email.enqueue).toHaveBeenCalledExactlyOnceWith({
+        kind: 'password_reset_otp',
+        userId: activeUser.id,
+        critical: true,
+        idempotencyKey: expect.any(String),
+        expiresAt: expiresAt.toISOString(),
+        message: expect.objectContaining({
+          to: 'User@example.com',
+          text: expect.stringContaining('123456'),
+        }),
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    [
+      {
+        user: {
+          ...activeUser,
+          status: 'PENDING' as const,
+          primaryEmail: { ...activeUser.primaryEmail!, verified: false },
+        },
+      },
+      'unverified_account_password_reset_notice',
+    ],
+    [{ passwordHash: null }, 'oauth_only_account_notice'],
+  ])(
+    'queues a recovery notice without an expiry for %j',
+    async (options, kind) => {
+      const { service, challenges, email } = createService(options);
+
+      await expect(
+        service.forgotPassword({ email: 'User@example.com' }),
+      ).resolves.toEqual(genericResponse);
+
+      expect(email.enqueue).toHaveBeenCalledExactlyOnceWith({
+        kind,
+        userId: activeUser.id,
+        critical: true,
+        idempotencyKey: expect.any(String),
+        message: expect.objectContaining({ to: 'User@example.com' }),
+      });
+      expect(challenges.invalidateActiveAndCreate).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
     [
       'unverified account notice',
@@ -168,7 +239,7 @@ describe('PasswordResetService.forgotPassword', () => {
     'returns the generic response when the %s delivery fails',
     async (_name, options, notification) => {
       const { service, email, logger } = createService(options);
-      vi.mocked(email.send).mockRejectedValue(
+      vi.mocked(email.enqueue).mockRejectedValue(
         new Error('Delivery failed for User@example.com'),
       );
 
@@ -218,7 +289,7 @@ describe('PasswordResetService.forgotPassword', () => {
         activeUser.id,
         OTP_RESEND_COOLDOWN_MS,
       );
-      expect(email.send).not.toHaveBeenCalled();
+      expect(email.enqueue).not.toHaveBeenCalled();
     },
   );
 });
@@ -229,6 +300,32 @@ describe('PasswordResetService.resetPassword', () => {
     otp: '123456',
     newPassword: 'new-secure-password',
   };
+
+  it('returns success and logs when the reset notification cannot be queued', async () => {
+    const { service, email, logger } = createService();
+    email.enqueue.mockRejectedValue(new Error('Queue unavailable'));
+
+    await expect(service.resetPassword(dto)).resolves.toEqual({
+      message:
+        'Your password has been reset. You have been signed out on every other device.',
+    });
+
+    expect(email.enqueue).toHaveBeenCalledExactlyOnceWith({
+      kind: 'password_changed',
+      userId: activeUser.id,
+      idempotencyKey: expect.any(String),
+      critical: true,
+      message: expect.objectContaining({ to: dto.email }),
+    });
+    expect(logger.error).toHaveBeenCalledExactlyOnceWith(
+      {
+        userId: activeUser.id,
+        notification: 'password_changed',
+        errorName: 'Error',
+      },
+      'Recovery email delivery failed',
+    );
+  });
 
   it('rejects a request that cannot atomically claim an attempt', async () => {
     const { service, challenges, otp, unitOfWork } = createService({

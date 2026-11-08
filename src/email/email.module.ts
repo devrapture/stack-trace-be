@@ -1,16 +1,23 @@
 import { Module } from '@nestjs/common';
 import { PlatformConfigModule } from '../config/platform-config.module.js';
-import { EMAIL_PROVIDER } from './email-provider.js';
-import { ResendEmailProvider } from './resend-email.provider.js';
+import { QueueModule } from '../queue/queue.module.js';
+import { EMAIL_TRANSPORT } from './email-provider.js';
+import { EMAIL_QUEUE } from './email-queue.js';
+import { PgBossEmailQueue } from './pg-boss-email.queue.js';
+import { ResendEmailTransport } from './resend-email.provider.js';
 
 @Module({
-  imports: [PlatformConfigModule],
+  imports: [PlatformConfigModule, QueueModule],
   providers: [
     {
-      provide: EMAIL_PROVIDER,
-      useClass: ResendEmailProvider,
+      provide: EMAIL_TRANSPORT,
+      useClass: ResendEmailTransport,
+    },
+    {
+      provide: EMAIL_QUEUE,
+      useClass: PgBossEmailQueue,
     },
   ],
-  exports: [EMAIL_PROVIDER],
+  exports: [EMAIL_TRANSPORT, EMAIL_QUEUE],
 })
 export class EmailModule {}

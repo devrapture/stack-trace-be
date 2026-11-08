@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import {
   OTP_MAX_ATTEMPTS,
   OTP_TTL_MS,
@@ -7,18 +8,18 @@ import {
 import { AppError } from '../common/error/app-error.js';
 import { ErrorCode } from '../common/error/error-codes.js';
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
-import { EMAIL_PROVIDER, type EmailProvider } from '../email/email-provider.js';
+import { EMAIL_QUEUE, type EmailQueue } from '../email/email-queue.js';
 import { accountEmail } from '../email/templates/account-email.js';
 import { UNIT_OF_WORK, type UnitOfWork } from '../prisma/unit-of-work.js';
 import type { SessionClientTypeName } from '../sessions/session-client-type.js';
 import { IssuedSession, SessionService } from '../sessions/session.service.js';
 import { normalizeEmail } from '../users/normalize-email.js';
+import type { UserProfile } from '../users/user.model.js';
 import {
   USERS_REPOSITORY,
   UserEmailAlreadyExistsError,
   type UsersRepository,
 } from '../users/users.repository.js';
-import type { UserProfile } from '../users/user.model.js';
 import { GithubOauthProvider } from './github-oauth.provider.js';
 import { GoogleOauthProvider } from './google-oauth.provider.js';
 import { IdentityLinkingService } from './identity-linking.service.js';
@@ -66,8 +67,8 @@ export class OAuthLoginService {
     private readonly unitOfWork: UnitOfWork,
     @Inject(USERS_REPOSITORY)
     private readonly userRepository: UsersRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    @Inject(EMAIL_QUEUE)
+    private readonly emailQueue: EmailQueue,
     @Inject(OAUTH_LINK_CHALLENGE_REPOSITORY)
     private readonly oauthLinkChallengeRepository: OAuthLinkChallengeRepository,
     private readonly sessionService: SessionService,
@@ -263,24 +264,32 @@ export class OAuthLoginService {
   ): Promise<void> {
     const otp = this.otpService.generate();
     const otpHash = this.otpService.hash(otp);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
     await this.oauthLinkChallengeRepository.create({
       userId: existingUserId,
       provider,
       providerSubject: profile.providerSubject,
       otpHash,
-      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+      expiresAt,
       maxAttempts: OTP_MAX_ATTEMPTS,
     });
 
-    await this.emailProvider.send({
-      to: existingUserEmail,
-      ...accountEmail({
-        type: 'oauth_link_challenge_otp',
-        provider,
-        otp,
-        expiresInMinutes: OTP_TTL_MS / 60_000,
-      }),
+    await this.emailQueue.enqueue({
+      kind: 'oauth_link_challenge_otp',
+      userId: existingUserId,
+      idempotencyKey: randomUUID(),
+      critical: true,
+      expiresAt: expiresAt.toISOString(),
+      message: {
+        to: existingUserEmail,
+        ...accountEmail({
+          type: 'oauth_link_challenge_otp',
+          provider,
+          otp,
+          expiresInMinutes: OTP_TTL_MS / 60_000,
+        }),
+      },
     });
   }
 }

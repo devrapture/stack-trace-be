@@ -2,12 +2,12 @@ import { HttpStatus } from '@nestjs/common';
 import { vi } from 'vitest';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
-import type { EmailProvider } from '../../email/email-provider.js';
+import type { EmailQueue } from '../../email/email-queue.js';
 import type { UserProfile } from '../../users/user.model.js';
 import type { UsersRepository } from '../../users/users.repository.js';
 import type { EmailVerificationChallengesRepository } from './email-verification.repository.js';
 import { EmailVerificationService } from './email-verification.service.js';
-import type { OtpService } from './otp.service.js';
+import { OTP_TTL_MS, type OtpService } from './otp.service.js';
 
 const pendingUser: UserProfile = {
   id: 'user-id',
@@ -42,10 +42,10 @@ function createService(user: UserProfile | null) {
     consumeAndVerifyEmail: vi.fn().mockResolvedValue(true),
   } as unknown as EmailVerificationChallengesRepository;
   const email = {
-    send: vi
-      .fn()
-      .mockResolvedValue({ provider: 'resend', messageId: 'test-id' }),
-  } as unknown as EmailProvider;
+    enqueue: vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'test-id' }),
+  } satisfies EmailQueue;
   const otp = {
     generate: vi.fn().mockReturnValue('123456'),
     hash: vi.fn().mockReturnValue('otp-hash'),
@@ -120,7 +120,16 @@ describe('EmailVerificationService.verify', () => {
 });
 
 describe('EmailVerificationService.resend', () => {
-  it('sends a newly issued code to an unverified email', async () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-08T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('queues a newly issued code with an expiry timestamp for an unverified email', async () => {
     const { service, challenges, email } = createService(pendingUser);
 
     await service.resend({ email: ' USER@example.com ' });
@@ -132,11 +141,17 @@ describe('EmailVerificationService.resend', () => {
         otpHash: 'otp-hash',
       }),
     );
-    expect(email.send).toHaveBeenCalledWith(
+    expect(email.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: 'user@example.com',
-        subject: 'Verify your email to join Stack Trace',
-        text: expect.stringContaining('123456'),
+        kind: 'registration_otp',
+        userId: pendingUser.id,
+        critical: true,
+        expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+        message: expect.objectContaining({
+          to: 'user@example.com',
+          subject: 'Verify your email to join Stack Trace',
+          text: expect.stringContaining('123456'),
+        }),
       }),
     );
   });
@@ -154,7 +169,7 @@ describe('EmailVerificationService.resend', () => {
       await service.resend({ email: 'user@example.com' });
 
       expect(challenges.issueWithCooldown).not.toHaveBeenCalled();
-      expect(email.send).not.toHaveBeenCalled();
+      expect(email.enqueue).not.toHaveBeenCalled();
     }
   });
 
@@ -176,7 +191,7 @@ describe('EmailVerificationService.resend', () => {
       await expect(
         service.resend({ email: 'user@example.com' }),
       ).resolves.toEqual(genericResponse);
-      expect(email.send).not.toHaveBeenCalled();
+      expect(email.enqueue).not.toHaveBeenCalled();
     },
   );
 
@@ -189,6 +204,6 @@ describe('EmailVerificationService.resend', () => {
     await expect(service.resend({ email: 'user@example.com' })).rejects.toThrow(
       'Database unavailable',
     );
-    expect(email.send).not.toHaveBeenCalled();
+    expect(email.enqueue).not.toHaveBeenCalled();
   });
 });

@@ -1,10 +1,13 @@
 import { HttpStatus } from '@nestjs/common';
 import { vi } from 'vitest';
-import type { OtpService } from '../auth/email-verification/otp.service.js';
+import {
+  OTP_TTL_MS,
+  type OtpService,
+} from '../auth/email-verification/otp.service.js';
 import { AppError } from '../common/error/app-error.js';
 import { ErrorCode } from '../common/error/error-codes.js';
 import type { AppConfig } from '../config/app-config.js';
-import type { EmailProvider } from '../email/email-provider.js';
+import type { EmailQueue } from '../email/email-queue.js';
 import type { TransactionClient } from '../prisma/db.js';
 import type { UnitOfWork } from '../prisma/unit-of-work.js';
 import type { SessionService } from '../sessions/session.service.js';
@@ -41,7 +44,7 @@ const createService = (overrides?: {
   identityRepository?: Partial<OAuthIdentitiesRepository>;
   unitOfWork?: UnitOfWork;
   userRepository?: Partial<UsersRepository>;
-  emailProvider?: Partial<EmailProvider>;
+  emailQueue?: EmailQueue;
   oauthLinkChallengeRepository?: Partial<OAuthLinkChallengeRepository>;
   sessionService?: Partial<SessionService>;
   googleProvider?: Partial<GoogleOauthProvider>;
@@ -55,7 +58,11 @@ const createService = (overrides?: {
     overrides?.identityRepository as OAuthIdentitiesRepository,
     overrides?.unitOfWork as UnitOfWork,
     overrides?.userRepository as UsersRepository,
-    overrides?.emailProvider as EmailProvider,
+    overrides?.emailQueue ?? {
+      enqueue: vi
+        .fn<EmailQueue['enqueue']>()
+        .mockResolvedValue({ jobId: 'test-id' }),
+    },
     overrides?.oauthLinkChallengeRepository as OAuthLinkChallengeRepository,
     overrides?.sessionService as SessionService,
     overrides?.googleProvider as GoogleOauthProvider,
@@ -219,7 +226,9 @@ describe('OAuthLoginService callback redirect URI', () => {
         primaryEmail: { display: 'user@example.com' },
       });
     const createChallenge = vi.fn().mockResolvedValue(undefined);
-    const send = vi.fn().mockResolvedValue(undefined);
+    const enqueue = vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'test-id' });
     const createSession = vi.fn();
     const createWithPrimaryEmail = vi
       .fn()
@@ -233,7 +242,7 @@ describe('OAuthLoginService callback redirect URI', () => {
         getUserByNormalizedEmail,
         createWithPrimaryEmail,
       },
-      emailProvider: { send },
+      emailQueue: { enqueue },
       oauthLinkChallengeRepository: { create: createChallenge },
       sessionService: { createSession },
       googleProvider: { exchangeAndVerify },
@@ -263,7 +272,15 @@ describe('OAuthLoginService callback redirect URI', () => {
         providerSubject: 'google-subject',
       }),
     );
-    expect(send).toHaveBeenCalledOnce();
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        kind: 'oauth_link_challenge_otp',
+        userId: 'winning-user-id',
+        critical: true,
+        expiresAt: expect.any(String),
+        message: expect.objectContaining({ to: 'user@example.com' }),
+      }),
+    );
     expect(createSession).not.toHaveBeenCalled();
   });
 
@@ -395,7 +412,15 @@ describe('OAuthLoginService callback redirect URI', () => {
     expect(getUserByNormalizedEmail).toHaveBeenCalledTimes(2);
   });
 
-  it('returns a link-required result after sending an OTP for an existing email', async () => {
+  it('reuses the link challenge expiry', async ({ onTestFinished }) => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const now = new Date('2026-11-08T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const expiresAt = new Date(now.getTime() + OTP_TTL_MS);
+
     const consume = vi.fn().mockResolvedValue({
       id: 'oauth-state-id',
       provider: 'GOOGLE',
@@ -413,8 +438,14 @@ describe('OAuthLoginService callback redirect URI', () => {
       providerSubject: 'google-subject',
       email: 'user@example.com',
     });
-    const createChallenge = vi.fn().mockResolvedValue(undefined);
-    const send = vi.fn().mockResolvedValue(undefined);
+    const createChallenge = vi
+      .fn<OAuthLinkChallengeRepository['create']>()
+      .mockImplementation(async () => {
+        vi.advanceTimersByTime(1_000);
+      });
+    const enqueue = vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'test-id' });
     const service = createService({
       stateRepository: { consume },
       identityRepository: {
@@ -427,7 +458,7 @@ describe('OAuthLoginService callback redirect URI', () => {
           primaryEmail: { display: 'user@example.com' },
         }),
       },
-      emailProvider: { send },
+      emailQueue: { enqueue },
       oauthLinkChallengeRepository: { create: createChallenge },
       googleProvider: { exchangeAndVerify },
       otpService: {
@@ -451,10 +482,17 @@ describe('OAuthLoginService callback redirect URI', () => {
         provider: 'GOOGLE',
         providerSubject: 'google-subject',
         otpHash: 'otp-hash',
+        expiresAt,
       }),
     );
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'user@example.com' }),
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        kind: 'oauth_link_challenge_otp',
+        userId: 'existing-user-id',
+        critical: true,
+        expiresAt: expiresAt.toISOString(),
+        message: expect.objectContaining({ to: 'user@example.com' }),
+      }),
     );
   });
 });

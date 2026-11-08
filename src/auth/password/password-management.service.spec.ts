@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import type { AuditLogRepository } from '../../audit/audit-log.repository.js';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
-import type { EmailProvider } from '../../email/email-provider.js';
+import type { EmailQueue } from '../../email/email-queue.js';
 import type { TransactionClient } from '../../prisma/db.js';
 import type { PrismaUnitOfWork } from '../../prisma/prisma-unit-of-work.js';
 import type { AuthSessionsRepository } from '../../sessions/auth-sessions.repository.js';
@@ -30,8 +30,10 @@ function createService(passwordUpdated: boolean) {
     lockForUpdate: vi.fn().mockResolvedValue(undefined),
   } as unknown as UsersRepository;
   const email = {
-    send: vi.fn(),
-  } as unknown as EmailProvider;
+    enqueue: vi
+      .fn<EmailQueue['enqueue']>()
+      .mockResolvedValue({ jobId: 'test-id' }),
+  } satisfies EmailQueue;
   const unitOfWork = {
     run: vi.fn(async (work: (tx: TransactionClient) => Promise<unknown>) =>
       work(transaction),
@@ -62,6 +64,7 @@ function createService(passwordUpdated: boolean) {
     auditLog,
     transaction,
     users,
+    email,
   };
 }
 
@@ -72,8 +75,30 @@ describe('PasswordManagementService.changePassword', () => {
   };
 
   it('changes the password only while the verified hash is still current', async () => {
-    const { auditLog, passwords, service, sessions, transaction, users } =
-      createService(true);
+    const {
+      auditLog,
+      passwords,
+      service,
+      sessions,
+      transaction,
+      users,
+      email,
+    } = createService(true);
+    vi.mocked(users.getUserById).mockResolvedValue({
+      id: 'user-id',
+      publicId: 'public-id',
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      avatarUrl: null,
+      primaryEmail: {
+        display: 'User@example.com',
+        normalized: 'user@example.com',
+        verified: true,
+      },
+      lastLoginAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     await expect(
       service.changePassword('user-id', 'current-session-id', dto),
@@ -117,6 +142,16 @@ describe('PasswordManagementService.changePassword', () => {
     expect(
       vi.mocked(sessions.revokeAllForUser).mock.invocationCallOrder[0],
     ).toBeLessThan(vi.mocked(auditLog.record).mock.invocationCallOrder[0]);
+    expect(email.enqueue).toHaveBeenCalledExactlyOnceWith({
+      kind: 'password_changed',
+      userId: 'user-id',
+      critical: true,
+      idempotencyKey: expect.any(String),
+      message: expect.objectContaining({
+        to: 'User@example.com',
+        subject: 'Your Stack Trace password was changed',
+      }),
+    });
   });
 
   it('aborts without revoking sessions when another request wins the race', async () => {

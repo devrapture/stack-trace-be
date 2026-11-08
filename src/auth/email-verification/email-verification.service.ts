@@ -1,10 +1,8 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { AppError } from '../../common/error/app-error.js';
 import { ErrorCode } from '../../common/error/error-codes.js';
-import {
-  EMAIL_PROVIDER,
-  type EmailProvider,
-} from '../../email/email-provider.js';
+import { EMAIL_QUEUE, type EmailQueue } from '../../email/email-queue.js';
 import { accountEmail } from '../../email/templates/account-email.js';
 import { normalizeEmail } from '../../users/normalize-email.js';
 import {
@@ -42,8 +40,8 @@ export class EmailVerificationService {
     private readonly userRepository: UsersRepository,
     @Inject(EMAIL_VERIFICATION_REPOSITORY)
     private readonly challengeRepository: EmailVerificationChallengesRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    @Inject(EMAIL_QUEUE)
+    private readonly emailQueue: EmailQueue,
     private readonly otpService: OtpService,
   ) {}
 
@@ -112,13 +110,20 @@ export class EmailVerificationService {
       throw error;
     }
 
-    await this.emailProvider.send({
-      to: user.primaryEmail.normalized,
-      ...accountEmail({
-        type: 'registration_otp',
-        otp,
-        expiresInMinutes: OTP_TTL_MS / 60_000,
-      }),
+    await this.emailQueue.enqueue({
+      kind: 'registration_otp',
+      userId: user.id,
+      critical: true,
+      idempotencyKey: randomUUID(),
+      expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+      message: {
+        to: user.primaryEmail.normalized,
+        ...accountEmail({
+          type: 'registration_otp',
+          otp,
+          expiresInMinutes: OTP_TTL_MS / 60_000,
+        }),
+      },
     });
     return GENERIC_RESEND_RESPONSE;
   }

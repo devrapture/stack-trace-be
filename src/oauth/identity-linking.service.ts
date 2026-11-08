@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
 import {
   AUDIT_LOG_REPOSITORY,
@@ -11,14 +12,14 @@ import {
 } from '../auth/password/password-credentials.repository.js';
 import { AppError } from '../common/error/app-error.js';
 import { ErrorCode } from '../common/error/error-codes.js';
-import { EMAIL_PROVIDER, type EmailProvider } from '../email/email-provider.js';
+import { EMAIL_QUEUE, type EmailQueue } from '../email/email-queue.js';
 import { accountEmail } from '../email/templates/account-email.js';
 import { UNIT_OF_WORK, type UnitOfWork } from '../prisma/unit-of-work.js';
-import { SessionClientTypeName } from '../sessions/session-client-type.js';
 import {
   AUTH_SESSIONS_REPOSITORY,
   type AuthSessionsRepository,
 } from '../sessions/auth-sessions.repository.js';
+import { SessionClientTypeName } from '../sessions/session-client-type.js';
 import { IssuedSession, SessionService } from '../sessions/session.service.js';
 import { normalizeEmail } from '../users/normalize-email.js';
 import {
@@ -30,8 +31,8 @@ import { LinkedMethodDto } from './dto/linked-method.dto.js';
 import {
   OAUTH_IDENTITIES_REPOSITORY,
   OAuthIdentityAlreadyLinkedError,
-  type OAuthIdentitiesRepository,
   OAuthProviderAlreadyLinkedError,
+  type OAuthIdentitiesRepository,
 } from './oauth-identities.repository.js';
 import {
   OAUTH_LINK_CHALLENGE_REPOSITORY,
@@ -67,8 +68,8 @@ export class IdentityLinkingService {
     private readonly auditLogRepository: AuditLogRepository,
     @Inject(USERS_REPOSITORY)
     private readonly userRepository: UsersRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    @Inject(EMAIL_QUEUE)
+    private readonly emailQueue: EmailQueue,
     @Inject(OAUTH_LINK_CHALLENGE_REPOSITORY)
     private readonly oauthLinkChallengeRepository: OAuthLinkChallengeRepository,
     private readonly otpService: OtpService,
@@ -439,12 +440,18 @@ export class IdentityLinkingService {
 
       if (!to) return;
 
-      await this.emailProvider.send({
-        to,
-        ...accountEmail({
-          type: notification,
-          provider: PROVIDER_DISPLAY_NAME[provider],
-        }),
+      await this.emailQueue.enqueue({
+        kind: notification,
+        userId: userId,
+        idempotencyKey: randomUUID(),
+        critical: true,
+        message: {
+          to: to,
+          ...accountEmail({
+            type: notification,
+            provider: PROVIDER_DISPLAY_NAME[provider],
+          }),
+        },
       });
     } catch (error) {
       this.logger.error(
