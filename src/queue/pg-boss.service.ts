@@ -34,6 +34,11 @@ export class PgBossService implements OnModuleInit, OnApplicationShutdown {
       this.logger.error(
         {
           errorName: error.name,
+          errorMessage: error.message,
+          errorCode:
+            'code' in error && typeof error.code === 'string'
+              ? error.code
+              : undefined,
         },
         'pg-boss database error',
       );

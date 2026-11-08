@@ -18,10 +18,13 @@ export type EnqueueEmailInput = EmailJobBase &
   (
     | {
         readonly kind: OtpEmailKind;
+        readonly userId: string;
+        readonly challengeId: string;
         readonly expiresAt: string;
       }
     | {
         readonly kind: Exclude<EmailKind, OtpEmailKind>;
+        readonly challengeId?: never;
         readonly expiresAt?: never;
       }
   );

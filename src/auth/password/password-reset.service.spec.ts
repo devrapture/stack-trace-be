@@ -74,7 +74,7 @@ function createService(options?: {
       .fn()
       .mockResolvedValue(options?.noticeCooldownClaimed ?? true),
     mostRecentIssuedAt: vi.fn().mockResolvedValue(null),
-    invalidateActiveAndCreate: vi.fn().mockResolvedValue(undefined),
+    invalidateActiveAndCreate: vi.fn().mockResolvedValue('challenge-id'),
     claimAttempt: vi.fn().mockResolvedValue(
       options?.challengeClaimed === false
         ? null
@@ -151,6 +151,7 @@ describe('PasswordResetService.forgotPassword', () => {
       vi.mocked(challenges.invalidateActiveAndCreate).mockImplementation(
         async () => {
           vi.advanceTimersByTime(1_000);
+          return 'challenge-id';
         },
       );
       const expiresAt = new Date(now.getTime() + OTP_TTL_MS);
@@ -164,6 +165,7 @@ describe('PasswordResetService.forgotPassword', () => {
       );
       expect(email.enqueue).toHaveBeenCalledExactlyOnceWith({
         kind: 'password_reset_otp',
+        challengeId: 'challenge-id',
         userId: activeUser.id,
         critical: true,
         idempotencyKey: expect.any(String),

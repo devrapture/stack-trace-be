@@ -138,18 +138,20 @@ export class RegistrationService {
     const otp = this.otpService.generate();
     const otpHash = this.otpService.hash(otp);
 
-    await this.emailVerificationRepository.issueWithCooldown({
-      userId,
-      purpose: 'REGISTRATION',
-      otpHash,
-      ttlMs: OTP_TTL_MS,
-      cooldownMs: OTP_RESEND_COOLDOWN_MS,
-      maxAttempts: OTP_MAX_ATTEMPTS,
-      passwordHash,
-    });
+    const challengeId =
+      await this.emailVerificationRepository.issueWithCooldown({
+        userId,
+        purpose: 'REGISTRATION',
+        otpHash,
+        ttlMs: OTP_TTL_MS,
+        cooldownMs: OTP_RESEND_COOLDOWN_MS,
+        maxAttempts: OTP_MAX_ATTEMPTS,
+        passwordHash,
+      });
 
     await this.emailQueue.enqueue({
       kind: 'registration_otp',
+      challengeId,
       userId: userId,
       idempotencyKey: randomUUID(),
       critical: true,

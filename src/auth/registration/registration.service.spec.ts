@@ -35,7 +35,7 @@ function createService(user: UserProfile) {
   } as unknown as PasswordCredentialsRepository;
 
   const challenges = {
-    issueWithCooldown: vi.fn().mockResolvedValue(undefined),
+    issueWithCooldown: vi.fn().mockResolvedValue('challenge-id'),
   } as unknown as EmailVerificationChallengesRepository;
 
   const email = {
@@ -91,6 +91,7 @@ describe('RegistrationService.register with an existing email', () => {
     expect(email.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'registration_otp',
+        challengeId: 'challenge-id',
         userId: pendingUser.id,
         critical: true,
         expiresAt: expect.any(String),

@@ -21,7 +21,7 @@ export interface EmailVerificationChallengesRepository {
     cooldownMs: number;
     maxAttempts: number;
     passwordHash?: string;
-  }): Promise<void>;
+  }): Promise<string>;
 
   findActive(
     userId: string,

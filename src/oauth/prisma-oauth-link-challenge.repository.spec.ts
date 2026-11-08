@@ -7,7 +7,7 @@ const EXPIRES_AT = Temporal.Instant.from('2026-10-20T12:00:00Z');
 
 describe('PrismaOAuthLinkChallengeRepository', () => {
   it('converts a Date expiry to Temporal.Instant when creating a challenge', async () => {
-    const create = vi.fn().mockResolvedValue(undefined);
+    const create = vi.fn().mockResolvedValue({ id: 'challenge-id' });
     const prisma = {
       db: {
         orm: {
@@ -19,7 +19,7 @@ describe('PrismaOAuthLinkChallengeRepository', () => {
     } as unknown as PrismaService;
     const repository = new PrismaOAuthLinkChallengeRepository(prisma);
 
-    await repository.create({
+    const challengeId = await repository.create({
       userId: 'user-id',
       provider: 'GITHUB',
       providerSubject: 'github-user-id',
@@ -28,6 +28,7 @@ describe('PrismaOAuthLinkChallengeRepository', () => {
       maxAttempts: 5,
     });
 
+    expect(challengeId).toBe('challenge-id');
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ expiresAt: EXPIRES_AT }),
     );

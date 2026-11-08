@@ -243,17 +243,19 @@ export class PasswordResetService {
     const otpHash = this.otpService.hash(otp);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    await this.passwordResetChallenge.invalidateActiveAndCreate({
-      userId,
-      otpHash,
-      expiresAt,
-      maxAttempts: OTP_MAX_ATTEMPTS,
-      cooldownMs: OTP_RESEND_COOLDOWN_MS,
-    });
+    const challengeId =
+      await this.passwordResetChallenge.invalidateActiveAndCreate({
+        userId,
+        otpHash,
+        expiresAt,
+        maxAttempts: OTP_MAX_ATTEMPTS,
+        cooldownMs: OTP_RESEND_COOLDOWN_MS,
+      });
 
     await this.sendRecoveryEmailBestEffort({
       userId,
       kind: 'password_reset_otp',
+      challengeId,
       expiresAt: expiresAt.toISOString(),
       idempotencyKey: randomUUID(),
       critical: true,

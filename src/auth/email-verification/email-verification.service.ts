@@ -91,8 +91,9 @@ export class EmailVerificationService {
     const otp = this.otpService.generate();
     const otpHash = this.otpService.hash(otp);
 
+    let challengeId: string;
     try {
-      await this.challengeRepository.issueWithCooldown({
+      challengeId = await this.challengeRepository.issueWithCooldown({
         userId: user.id,
         purpose: 'REGISTRATION',
         otpHash,
@@ -112,6 +113,7 @@ export class EmailVerificationService {
 
     await this.emailQueue.enqueue({
       kind: 'registration_otp',
+      challengeId,
       userId: user.id,
       critical: true,
       idempotencyKey: randomUUID(),

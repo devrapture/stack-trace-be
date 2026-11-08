@@ -225,7 +225,7 @@ describe('OAuthLoginService callback redirect URI', () => {
         status: 'ACTIVE',
         primaryEmail: { display: 'user@example.com' },
       });
-    const createChallenge = vi.fn().mockResolvedValue(undefined);
+    const createChallenge = vi.fn().mockResolvedValue('challenge-id');
     const enqueue = vi
       .fn<EmailQueue['enqueue']>()
       .mockResolvedValue({ jobId: 'test-id' });
@@ -275,6 +275,7 @@ describe('OAuthLoginService callback redirect URI', () => {
     expect(enqueue).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         kind: 'oauth_link_challenge_otp',
+        challengeId: 'challenge-id',
         userId: 'winning-user-id',
         critical: true,
         expiresAt: expect.any(String),
@@ -442,6 +443,7 @@ describe('OAuthLoginService callback redirect URI', () => {
       .fn<OAuthLinkChallengeRepository['create']>()
       .mockImplementation(async () => {
         vi.advanceTimersByTime(1_000);
+        return 'challenge-id';
       });
     const enqueue = vi
       .fn<EmailQueue['enqueue']>()
@@ -488,6 +490,7 @@ describe('OAuthLoginService callback redirect URI', () => {
     expect(enqueue).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         kind: 'oauth_link_challenge_otp',
+        challengeId: 'challenge-id',
         userId: 'existing-user-id',
         critical: true,
         expiresAt: expiresAt.toISOString(),

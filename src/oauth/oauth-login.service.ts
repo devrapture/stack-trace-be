@@ -266,7 +266,7 @@ export class OAuthLoginService {
     const otpHash = this.otpService.hash(otp);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    await this.oauthLinkChallengeRepository.create({
+    const challengeId = await this.oauthLinkChallengeRepository.create({
       userId: existingUserId,
       provider,
       providerSubject: profile.providerSubject,
@@ -277,6 +277,7 @@ export class OAuthLoginService {
 
     await this.emailQueue.enqueue({
       kind: 'oauth_link_challenge_otp',
+      challengeId,
       userId: existingUserId,
       idempotencyKey: randomUUID(),
       critical: true,

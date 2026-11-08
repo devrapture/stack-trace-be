@@ -30,7 +30,7 @@ function createService(user: UserProfile | null) {
     getUserByNormalizedEmail: vi.fn().mockResolvedValue(user),
   } as unknown as UsersRepository;
   const challenges = {
-    issueWithCooldown: vi.fn().mockResolvedValue(undefined),
+    issueWithCooldown: vi.fn().mockResolvedValue('challenge-id'),
     findActive: vi.fn().mockResolvedValue({
       id: 'challenge-id',
       otpHash: 'otp-hash',
@@ -144,6 +144,7 @@ describe('EmailVerificationService.resend', () => {
     expect(email.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'registration_otp',
+        challengeId: 'challenge-id',
         userId: pendingUser.id,
         critical: true,
         expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString(),

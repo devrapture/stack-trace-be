@@ -34,7 +34,7 @@ export class PrismaEmailVerificationRepository implements EmailVerificationChall
     cooldownMs: number;
     maxAttempts: number;
     passwordHash?: string;
-  }): Promise<void> {
+  }): Promise<string> {
     const db = this.prisma.db;
     const lockUser = db.raw
       .sql`SELECT id FROM users WHERE id = ${input.userId} FOR UPDATE`
@@ -48,7 +48,7 @@ export class PrismaEmailVerificationRepository implements EmailVerificationChall
       .build();
 
     try {
-      await db.transaction(async (tx) => {
+      return await db.transaction(async (tx) => {
         let userFound = false;
         for await (const _row of tx.query(lockUser)) {
           userFound = true;
@@ -119,15 +119,18 @@ export class PrismaEmailVerificationRepository implements EmailVerificationChall
           consumedAt: Temporal.Now.instant(),
         });
 
-        await tx.orm.public.EmailVerificationChallenge.create({
-          userId: input.userId,
-          purpose: input.purpose,
-          otpHash: input.otpHash,
-          createdAt: now,
-          expiresAt: now.add({ milliseconds: input.ttlMs }),
-          attemptCount: 0,
-          maxAttempts: input.maxAttempts,
-        });
+        const challenge = await tx.orm.public.EmailVerificationChallenge.create(
+          {
+            userId: input.userId,
+            purpose: input.purpose,
+            otpHash: input.otpHash,
+            createdAt: now,
+            expiresAt: now.add({ milliseconds: input.ttlMs }),
+            attemptCount: 0,
+            maxAttempts: input.maxAttempts,
+          },
+        );
+        return challenge.id;
       });
     } catch (error) {
       if (

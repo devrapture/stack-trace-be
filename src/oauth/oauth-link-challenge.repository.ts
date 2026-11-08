@@ -23,7 +23,7 @@ export interface OAuthLinkChallengeRepository {
     otpHash: string;
     expiresAt: Date;
     maxAttempts: number;
-  }): Promise<void>;
+  }): Promise<string>;
 
   findActiveForUser(userId: string): Promise<ActiveOAuthLinkChallenge | null>;
 
