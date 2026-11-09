@@ -67,7 +67,7 @@
     "@nestjs/cli": "^12.0.7",
     "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.12",
-    "@nestjs/testing": "^12.0.1",
+    "@nestjs/testing": "^12.4.0",
     "@prisma/cli-engine": "0.6.2",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
